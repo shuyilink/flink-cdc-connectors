@@ -96,6 +96,8 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     private static final long CLOSE_TIMEOUT = 30L;
 
+    private boolean isInitalized = false;
+
     public TiKVRichParallelSourceFunction(
             TiKVSnapshotEventDeserializationSchema<T> snapshotEventDeserializationSchema,
             TiKVChangeEventDeserializationSchema<T> changeEventDeserializationSchema,
@@ -134,10 +136,13 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         // since sink jdbc is slow, 5000W queue size may be safe size.
         committedEvents = new LinkedBlockingQueue<>();
         outputCollector = new OutputCollector<>();
-        resolvedTs =
-                startupMode == StartupMode.INITIAL
-                        ? SNAPSHOT_VERSION_EPOCH
-                        : STREAMING_VERSION_START_EPOCH;
+        if (!isInitalized){
+            resolvedTs =
+                    startupMode == StartupMode.INITIAL
+                            ? SNAPSHOT_VERSION_EPOCH
+                            : STREAMING_VERSION_START_EPOCH;
+            LOG.info("open source function {} {} {} {}", startupMode, database, tableName, resolvedTs);
+        }
         ThreadFactory threadFactory =
                 new ThreadFactoryBuilder()
                         .setNameFormat(
@@ -152,16 +157,18 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         sourceContext = ctx;
         outputCollector.context = sourceContext;
 
-        if (startupMode == StartupMode.INITIAL) {
+        if (startupMode == StartupMode.INITIAL && !isInitalized && resolvedTs <= 0) {
             synchronized (sourceContext.getCheckpointLock()) {
                 readSnapshotEvents();
             }
         } else {
-            LOG.info("Skip snapshot read");
-            resolvedTs = session.getTimestamp().getVersion();
+            LOG.info("Skip snapshot read {} {} {} {}", database, tableName, isInitalized, resolvedTs);
+            if (!isInitalized) {
+                resolvedTs = session.getTimestamp().getVersion();
+            }
         }
 
-        LOG.info("start read change events");
+        LOG.info("start read change events {} {}", database, tableName);
         cdcClient.start(resolvedTs);
         running = true;
         readChangeEvents();
@@ -172,7 +179,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
             // Don't handle index key for now
             return;
         }
-        LOG.debug("binlog record, type: {}, data: {}", row.getType(), row);
+        LOG.debug("binlog record, {} {}  type: {}, data: {}", database, tableName, row.getType(), row);
         switch (row.getType()) {
             case COMMITTED:
                 prewrites.put(RowKeyWithTs.ofStart(row), row);
@@ -193,7 +200,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     }
 
     protected void readSnapshotEvents() throws Exception {
-        LOG.info("read snapshot events");
+        LOG.info("read snapshot events {} {} {}", database, tableName, resolvedTs);
         try (KVClient scanClient = session.createKVClient()) {
             long startTs = session.getTimestamp().getVersion();
             ByteString start = keyRange.getStart();
@@ -221,7 +228,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     }
 
     protected void readChangeEvents() throws Exception {
-        LOG.info("read change event from resolvedTs:{}", resolvedTs);
+        LOG.info("read change event from resolvedTs:{} {} {} ", database, tableName, resolvedTs);
         // child thread to sink committed rows.
         executorService.execute(
                 () -> {
@@ -286,8 +293,10 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     @Override
     public void snapshotState(final FunctionSnapshotContext context) throws Exception {
         LOG.info(
-                "snapshotState checkpoint: {} at resolvedTs: {}",
+                "snapshotState checkpoint: {} at {} {} resolvedTs: {}",
                 context.getCheckpointId(),
+                database,
+                tableName,
                 resolvedTs);
         flushRows(resolvedTs);
         offsetState.clear();
@@ -296,7 +305,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     @Override
     public void initializeState(final FunctionInitializationContext context) throws Exception {
-        LOG.info("initialize checkpoint");
+        LOG.info("initialize checkpoint {} {} ", database, tableName);
         offsetState =
                 context.getOperatorStateStore()
                         .getListState(
@@ -305,12 +314,13 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         if (context.isRestored()) {
             for (final Long offset : offsetState.get()) {
                 resolvedTs = offset;
-                LOG.info("Restore State from resolvedTs: {}", resolvedTs);
+                isInitalized = true;
+                LOG.info("Restore State from resolvedTs: {} {}  {}", database, tableName, resolvedTs);
                 return;
             }
         } else {
             resolvedTs = 0;
-            LOG.info("Initialize State from resolvedTs: {}", resolvedTs);
+            LOG.info("Initialize State from resolvedTs: {} {} {}", database, tableName, resolvedTs);
         }
     }
 
