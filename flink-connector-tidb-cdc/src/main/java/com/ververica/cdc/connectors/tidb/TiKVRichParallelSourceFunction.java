@@ -49,6 +49,7 @@ import org.tikv.txn.KVClient;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -117,6 +118,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     public void open(final Configuration config) throws Exception {
         super.open(config);
         session = TiSession.create(tiConf);
+
         TiTableInfo tableInfo = session.getCatalog().getTable(database, tableName);
         if (tableInfo == null) {
             throw new RuntimeException(
@@ -156,9 +158,20 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     public void run(final SourceContext<T> ctx) throws Exception {
         sourceContext = ctx;
         outputCollector.context = sourceContext;
-
+        int delay_minute;
+        String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
+        if(delay_minute_env.isEmpty()) {
+            delay_minute = 3;
+        } else {
+            delay_minute = Integer.parseInt(delay_minute_env);
+        }
         if (startupMode == StartupMode.INITIAL && !isInitalized && resolvedTs <= 0) {
             synchronized (sourceContext.getCheckpointLock()) {
+                Random random = new Random();
+                int tm = Math.abs(random.nextInt()) % delay_minute;
+                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} minutes ",database, tableName,delay_minute_env,tm);
+                Thread.sleep(tm * 1000 * 60);
+                session = TiSession.create(tiConf);
                 readSnapshotEvents();
             }
         } else {
@@ -223,6 +236,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                         RowKey.toRawKey(segment.get(segment.size() - 1).getKey())
                                 .next()
                                 .toByteString();
+                Thread.sleep(300);
             }
         }
     }

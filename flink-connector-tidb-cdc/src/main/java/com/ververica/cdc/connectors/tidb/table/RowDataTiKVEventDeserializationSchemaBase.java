@@ -29,6 +29,8 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import com.ververica.cdc.debezium.utils.TemporalConversions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tikv.common.TiConfiguration;
 import org.tikv.common.TiSession;
 import org.tikv.common.meta.TiColumnInfo;
@@ -48,6 +50,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class RowDataTiKVEventDeserializationSchemaBase implements Serializable {
     private static final long serialVersionUID = 1L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(RowDataTiKVEventDeserializationSchemaBase.class);
 
     /** Whether the deserializer needs to handle metadata columns. */
     private final boolean hasMetadata;
@@ -123,7 +127,7 @@ public class RowDataTiKVEventDeserializationSchemaBase implements Serializable {
 
     /** Creates a runtime converter which assuming input object is not null. */
     public static TiKVDeserializationRuntimeConverter createNotNullConverter(LogicalType type) {
-
+        LOG.info("====createNotNullConverter {}",type);
         // if no matched user defined converter, fallback to the default converter
         switch (type.getTypeRoot()) {
             case NULL:
@@ -483,7 +487,9 @@ public class RowDataTiKVEventDeserializationSchemaBase implements Serializable {
                 if (object instanceof String) {
                     bigDecimal = new BigDecimal((String) object);
                 } else if (object instanceof Long) {
-                    bigDecimal = new BigDecimal((String) object);
+                    Long value = (Long) object;
+                    bigDecimal = new BigDecimal(value.toString());
+//                    bigDecimal = new BigDecimal((String) object);
                 } else if (object instanceof Double) {
                     bigDecimal = BigDecimal.valueOf((Double) object);
                 } else if (object instanceof BigDecimal) {

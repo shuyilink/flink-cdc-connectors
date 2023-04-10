@@ -20,6 +20,8 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tikv.common.ConfigUtils;
 import org.tikv.common.TiConfiguration;
 
@@ -27,7 +29,7 @@ import java.util.Map;
 
 /** Configurations for {@link TiDBSource}. */
 public class TDBSourceOptions {
-
+    private static final Logger LOG = LoggerFactory.getLogger(TDBSourceOptions.class);
     private TDBSourceOptions() {}
 
     public static final ConfigOption<String> DATABASE_NAME =
@@ -80,11 +82,26 @@ public class TDBSourceOptions {
                     .noDefaultValue()
                     .withDescription("TiKV GRPC batch scan concurrency");
 
+    public static final ConfigOption<Integer> TIKV_GRPC_SCAN_BATCH_SIZE =
+            ConfigOptions.key(ConfigUtils.TIKV_GRPC_SCAN_BATCH_SIZE)
+                    .intType()
+                    .noDefaultValue()
+                    .withDescription("TiKV GRPC batch scan size");
+
+    public static final ConfigOption<Integer> TIKV_CLIENT_CONCURRENCY =
+            ConfigOptions.key(ConfigUtils.TIKV_KV_CLIENT_CONCURRENCY)
+                    .intType()
+                    .noDefaultValue()
+                    .withDescription("TiKV GRPC client consurrency size");
+
+
     public static TiConfiguration getTiConfiguration(
             final String pdAddrsStr, final Map<String, String> options) {
         final Configuration configuration = Configuration.fromMap(options);
 
+        // TODO: 只设置了四个值
         final TiConfiguration tiConf = TiConfiguration.createDefault(pdAddrsStr);
+
         configuration.getOptional(TIKV_GRPC_TIMEOUT).ifPresent(tiConf::setTimeout);
         configuration.getOptional(TIKV_GRPC_SCAN_TIMEOUT).ifPresent(tiConf::setScanTimeout);
         configuration
@@ -94,6 +111,11 @@ public class TDBSourceOptions {
         configuration
                 .getOptional(TIKV_BATCH_SCAN_CONCURRENCY)
                 .ifPresent(tiConf::setBatchScanConcurrency);
+
+
+        // 支持读取多个
+//        configuration.getOptional(TIKV_GRPC_SCAN_BATCH_SIZE).ifPresent(tiConf::setScanBatchSize);
+        configuration.getOptional(TIKV_CLIENT_CONCURRENCY).ifPresent(tiConf::setKvClientConcurrency);
         return tiConf;
     }
 }
