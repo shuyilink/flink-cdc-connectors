@@ -16,6 +16,9 @@
 
 package org.tikv.common.operation.iterator;
 
+import com.ververica.cdc.connectors.tidb.TiKVRichParallelSourceFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tikv.common.TiConfiguration;
 import org.tikv.common.exception.GrpcException;
 import org.tikv.common.exception.TiClientInternalException;
@@ -37,6 +40,8 @@ import static java.util.Objects.requireNonNull;
  * <p>Line 107 : Use `currentCache.size() > scanLimit` instead of `currentCache.size() > limit`.
  */
 public abstract class ScanIterator implements Iterator<Kvrpcpb.KvPair> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ScanIterator.class);
     protected final TiConfiguration conf;
     protected final RegionStoreClientBuilder builder;
     protected List<Kvrpcpb.KvPair> currentCache;
@@ -99,6 +104,8 @@ public abstract class ScanIterator implements Iterator<Kvrpcpb.KvPair> {
             // so that we don't worry about conf change in the middle
             // of a transaction. Otherwise, below code might lose data
             int scanLimit = Math.min(limit, conf.getScanBatchSize());
+
+            LOG.info("====== limit {} scanLimit {} cacheSize {},batchSize {}",limit,scanLimit,currentCache.size(),conf.getScanBatchSize());
             if (currentCache.size() < scanLimit) {
                 startKey = curRegionEndKey;
                 lastKey = Key.toRawKey(curRegionEndKey);

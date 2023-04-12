@@ -76,6 +76,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     private final StartupMode startupMode;
     private final String database;
     private final String tableName;
+    private int delayStartSeconds;
 
     /** Task local variables. */
     private transient TiSession session = null;
@@ -105,13 +106,16 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
             TiConfiguration tiConf,
             StartupMode startupMode,
             String database,
-            String tableName) {
+            String tableName,
+            int delayStartSeconds) {
         this.snapshotEventDeserializationSchema = snapshotEventDeserializationSchema;
         this.changeEventDeserializationSchema = changeEventDeserializationSchema;
         this.tiConf = tiConf;
         this.startupMode = startupMode;
         this.database = database;
         this.tableName = tableName;
+        this.delayStartSeconds = delayStartSeconds;
+        LOG.info("TiKVRichParallelSourceFunction init database {} tableName {} delayStartSeconds {}",database,tableName,delayStartSeconds);
     }
 
     @Override
@@ -158,19 +162,32 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     public void run(final SourceContext<T> ctx) throws Exception {
         sourceContext = ctx;
         outputCollector.context = sourceContext;
-        int delay_minute;
+
+        int delay_seconds;
         String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
         if(delay_minute_env.isEmpty()) {
-            delay_minute = 3;
+            delay_seconds = 300;
         } else {
-            delay_minute = Integer.parseInt(delay_minute_env);
+            delay_seconds = Integer.parseInt(delay_minute_env) * 60;
         }
+
+        int batchSize =  tiConf.getScanBatchSize();
+        LOG.info("============batchSize {}",batchSize);
+
+//        if(delayStartSeconds == 0) {
+//            Random random = new Random();
+//            delayStartSeconds = Math.abs(random.nextInt()) % 10;
+//            LOG.info("generate delayStartSeconds {} {}  delayStartSeconds {}",database, tableName,delayStartSeconds);
+//        }
+
         if (startupMode == StartupMode.INITIAL && !isInitalized && resolvedTs <= 0) {
             synchronized (sourceContext.getCheckpointLock()) {
+                LOG.info("wait for start readSnapshotEvents {} {}  delayStartSeconds {} ",database, tableName,delayStartSeconds);
                 Random random = new Random();
-                int tm = Math.abs(random.nextInt()) % delay_minute;
-                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} minutes ",database, tableName,delay_minute_env,tm);
-                Thread.sleep(tm * 1000 * 60);
+                int tm = Math.abs(random.nextInt()) % delay_seconds;
+                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} seconds ",database, tableName,delay_minute_env,tm);
+                Thread.sleep(tm * 1000);
+//              Thread.sleep(delayStartSeconds * 1000);
                 session = TiSession.create(tiConf);
                 readSnapshotEvents();
             }

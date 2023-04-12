@@ -127,7 +127,6 @@ public class RowDataTiKVEventDeserializationSchemaBase implements Serializable {
 
     /** Creates a runtime converter which assuming input object is not null. */
     public static TiKVDeserializationRuntimeConverter createNotNullConverter(LogicalType type) {
-        LOG.info("====createNotNullConverter {}",type);
         // if no matched user defined converter, fallback to the default converter
         switch (type.getTypeRoot()) {
             case NULL:

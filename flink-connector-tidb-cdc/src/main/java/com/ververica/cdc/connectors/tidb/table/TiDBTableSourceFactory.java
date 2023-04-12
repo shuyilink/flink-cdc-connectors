@@ -16,6 +16,7 @@
 
 package com.ververica.cdc.connectors.tidb.table;
 
+import com.ververica.cdc.connectors.tidb.TiKVRichParallelSourceFunction;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.table.api.ValidationException;
@@ -23,26 +24,24 @@ import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.DATABASE_NAME;
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.PD_ADDRESSES;
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.SCAN_STARTUP_MODE;
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.TABLE_NAME;
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.TIKV_BATCH_GET_CONCURRENCY;
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.TIKV_BATCH_SCAN_CONCURRENCY;
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.TIKV_GRPC_SCAN_TIMEOUT;
-import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.TIKV_GRPC_TIMEOUT;
+import static com.ververica.cdc.connectors.tidb.TDBSourceOptions.*;
 import static com.ververica.cdc.debezium.utils.ResolvedSchemaUtils.getPhysicalSchema;
 
 /** Factory for creating configured instance of {@link TiDBTableSource}. */
 public class TiDBTableSourceFactory implements DynamicTableSourceFactory {
 
     private static final String IDENTIFIER = "tidb-cdc";
+
+
+    private static final Logger LOG = LoggerFactory.getLogger(TiDBTableSourceFactory.class);
 
     @Override
     public DynamicTableSource createDynamicTableSource(Context context) {
@@ -53,6 +52,7 @@ public class TiDBTableSourceFactory implements DynamicTableSourceFactory {
         String databaseName = config.get(DATABASE_NAME);
         String tableName = config.get(TABLE_NAME);
         String pdAddresses = config.get(PD_ADDRESSES);
+        int delayStartSeconds = config.get(DELAY_START_SECONDS);
         StartupOptions startupOptions = getStartupOptions(config);
         ResolvedSchema physicalSchema =
                 getPhysicalSchema(context.getCatalogTable().getResolvedSchema());
@@ -62,6 +62,7 @@ public class TiDBTableSourceFactory implements DynamicTableSourceFactory {
                 databaseName,
                 tableName,
                 pdAddresses,
+                delayStartSeconds,
                 startupOptions,
                 TiKVOptions.getTiKVOptions(context.getCatalogTable().getOptions()));
     }

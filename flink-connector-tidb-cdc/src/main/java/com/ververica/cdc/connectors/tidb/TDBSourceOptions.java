@@ -58,6 +58,12 @@ public class TDBSourceOptions {
                     .noDefaultValue()
                     .withDescription("TiKV cluster's PD address");
 
+    public static final ConfigOption<Integer> DELAY_START_SECONDS =
+            ConfigOptions.key("delay-start-seconds")
+                    .intType()
+                    .noDefaultValue()
+                    .withDescription("task delay start seconds");
+
     public static final ConfigOption<Long> TIKV_GRPC_TIMEOUT =
             ConfigOptions.key(ConfigUtils.TIKV_GRPC_TIMEOUT)
                     .longType()
@@ -114,7 +120,7 @@ public class TDBSourceOptions {
 
 
         // 支持读取多个
-//        configuration.getOptional(TIKV_GRPC_SCAN_BATCH_SIZE).ifPresent(tiConf::setScanBatchSize);
+        configuration.getOptional(TIKV_GRPC_SCAN_BATCH_SIZE).ifPresent(tiConf::setScanBatchSize);
         configuration.getOptional(TIKV_CLIENT_CONCURRENCY).ifPresent(tiConf::setKvClientConcurrency);
         return tiConf;
     }

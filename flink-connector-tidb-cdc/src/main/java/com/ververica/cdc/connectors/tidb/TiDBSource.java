@@ -35,6 +35,7 @@ public class TiDBSource {
         private StartupOptions startupOptions = StartupOptions.initial();
         private TiConfiguration tiConf;
 
+        private int delayStartSeconds;
         private TiKVSnapshotEventDeserializationSchema<T> snapshotEventDeserializationSchema;
         private TiKVChangeEventDeserializationSchema<T> changeEventDeserializationSchema;
 
@@ -50,6 +51,11 @@ public class TiDBSource {
             return this;
         }
 
+        /** delayStartSeconds to be monitored. */
+        public Builder<T> delayStartSeconds(int delayStartSeconds) {
+            this.delayStartSeconds = delayStartSeconds;
+            return this;
+        }
         /** The deserializer used to convert from consumed snapshot event from TiKV. */
         public Builder<T> snapshotEventDeserializer(
                 TiKVSnapshotEventDeserializationSchema<T> snapshotEventDeserializationSchema) {
@@ -77,14 +83,14 @@ public class TiDBSource {
         }
 
         public RichParallelSourceFunction<T> build() {
-
             return new TiKVRichParallelSourceFunction<>(
                     snapshotEventDeserializationSchema,
                     changeEventDeserializationSchema,
                     tiConf,
                     startupOptions.startupMode,
                     database,
-                    tableName);
+                    tableName,
+                    delayStartSeconds);
         }
     }
 }

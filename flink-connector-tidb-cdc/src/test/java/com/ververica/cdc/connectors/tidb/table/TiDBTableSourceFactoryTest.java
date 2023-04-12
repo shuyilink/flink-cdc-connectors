@@ -84,6 +84,7 @@ public class TiDBTableSourceFactoryTest {
                         MY_DATABASE,
                         MY_TABLE,
                         PD_ADDRESS,
+                        0L,
                         StartupOptions.latest(),
                         OPTIONS);
         assertEquals(expectedSource, actualSource);
@@ -114,6 +115,7 @@ public class TiDBTableSourceFactoryTest {
                         MY_DATABASE,
                         MY_TABLE,
                         PD_ADDRESS,
+                        0L,
                         StartupOptions.latest(),
                         options);
         assertEquals(expectedSource, actualSource);

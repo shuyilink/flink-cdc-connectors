@@ -51,6 +51,8 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
     private final String database;
     private final String tableName;
     private final String pdAddresses;
+
+    private final int delayStartSeconds;
     private final StartupOptions startupOptions;
     private final Map<String, String> options;
 
@@ -69,12 +71,14 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
             String database,
             String tableName,
             String pdAddresses,
+            int delayStartSeconds,
             StartupOptions startupOptions,
             Map<String, String> options) {
         this.physicalSchema = physicalSchema;
         this.database = checkNotNull(database);
         this.tableName = checkNotNull(tableName);
         this.pdAddresses = checkNotNull(pdAddresses);
+        this.delayStartSeconds = delayStartSeconds;
         this.startupOptions = startupOptions;
         this.producedDataType = physicalSchema.toPhysicalRowDataType();
         this.options = options;
@@ -120,6 +124,7 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
                 TiDBSource.<RowData>builder()
                         .database(database)
                         .tableName(tableName)
+                        .delayStartSeconds(delayStartSeconds)
                         .startupOptions(startupOptions)
                         .tiConf(tiConf)
                         .snapshotEventDeserializer(snapshotEventDeserializationSchema)
@@ -131,7 +136,7 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
     public DynamicTableSource copy() {
         TiDBTableSource source =
                 new TiDBTableSource(
-                        physicalSchema, database, tableName, pdAddresses, startupOptions, options);
+                        physicalSchema, database, tableName, pdAddresses,delayStartSeconds, startupOptions, options);
         source.producedDataType = producedDataType;
         source.metadataKeys = metadataKeys;
         return source;
