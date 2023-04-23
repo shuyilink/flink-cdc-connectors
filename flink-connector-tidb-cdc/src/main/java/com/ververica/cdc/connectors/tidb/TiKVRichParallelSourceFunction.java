@@ -16,6 +16,9 @@
 
 package com.ververica.cdc.connectors.tidb;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import org.apache.commons.io.FileUtils;
 import org.apache.flink.api.common.state.CheckpointListener;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
@@ -29,11 +32,11 @@ import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.Preconditions;
-
 import org.apache.flink.shaded.guava30.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import com.ververica.cdc.connectors.tidb.table.StartupMode;
 import com.ververica.cdc.connectors.tidb.table.utils.TableKeyRangeUtils;
+import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tikv.cdc.CDCClient;
@@ -44,13 +47,17 @@ import org.tikv.common.meta.TiTableInfo;
 import org.tikv.kvproto.Cdcpb;
 import org.tikv.kvproto.Coprocessor;
 import org.tikv.kvproto.Kvrpcpb;
+
 import org.tikv.shade.com.google.protobuf.ByteString;
 import org.tikv.txn.KVClient;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.TreeMap;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.*;
+import java.sql.Blob;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -100,6 +107,12 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     private boolean isInitalized = false;
 
+    private int maxParallel;
+
+    private static String lockDir = "/opt/flink/lock/";
+
+    private static String tableCacheDir = "/opt/flink/table_metadata_cache";
+
     public TiKVRichParallelSourceFunction(
             TiKVSnapshotEventDeserializationSchema<T> snapshotEventDeserializationSchema,
             TiKVChangeEventDeserializationSchema<T> changeEventDeserializationSchema,
@@ -118,12 +131,80 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         LOG.info("TiKVRichParallelSourceFunction init database {} tableName {} delayStartSeconds {}",database,tableName,delayStartSeconds);
     }
 
+    public void setTiDBInfoCache(Map<String,List<TiTableInfo>> tableInfoCache) throws IOException {
+        {
+         //   ObjectMapper mapper = new ObjectMapper();
+         //   String data = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(tableInfoCache);
+        }
+        {
+//            String data = JSON.toJSONString(tableInfoCache);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(tableInfoCache);
+        byte[] bytes = baos.toByteArray();
+        oos.close();
+        baos.close();
+
+        File file = new File(tableCacheDir);
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+
+        FileWriter wr = new FileWriter(file);
+        wr.write(Arrays.toString(bytes));
+        wr.flush();
+        wr.close();
+        return;
+    }
+
+    public TiTableInfo getTableInfoFromCache(String database,String tableName) throws IOException, SQLException, ClassNotFoundException {
+        File file = new File(tableCacheDir);
+        if (!file.exists()) {
+            return null;
+        }
+
+        String data = FileUtils.readFileToByteArray(file).toString();
+        InputStream inputStream = new ByteArrayInputStream(data.getBytes());
+        ObjectInputStream ois = new ObjectInputStream(inputStream);
+        Map<String,List<TiTableInfo>> tableCacheInfo = (Map<String, List<TiTableInfo>>) ois.readObject();
+        ois.close();
+        inputStream.close();
+
+//        String data = FileUtils.readFileToByteArray(file).toString();
+//        JSONObject.parseObject(data);
+//        TypeReference<Map<String,List<TiTableInfo>>> typeRef = new TypeReference<Map<String, List<TiTableInfo>>>() {};
+//        ObjectMapper mapper = new ObjectMapper();
+//        Map<String,List<TiTableInfo>> tableCacheInfo = mapper.readValue(data,typeRef);
+        List<TiTableInfo> tableInfos = tableCacheInfo.get(database);
+        if (tableInfos == null || tableInfos.size() == 0){
+            return null;
+        }
+        for (int i = 0; i < tableInfos.size(); i++) {
+            if(tableInfos.get(i).getName() == tableName){
+                return tableInfos.get(i);
+            }
+        }
+        return null;
+    }
+
     @Override
     public void open(final Configuration config) throws Exception {
         super.open(config);
         session = TiSession.create(tiConf);
 
-        TiTableInfo tableInfo = session.getCatalog().getTable(database, tableName);
+        Random random = new Random();
+        int delayStart = Math.abs(random.nextInt()) % 120;
+        Thread.sleep(delayStart * 1000);
+        LOG.info("delayStart {} {} {}",delayStart,database,tableName);
+        TiTableInfo tableInfo = getTableInfoFromCache(database,tableName);
+        if (tableInfo == null) {
+            LOG.info("can't get tableInfo from cache {} {}",database,tableName);
+            tableInfo = session.getCatalog().getTable(database, tableName);
+            Map<String,List<TiTableInfo>> tableInfoCache =  session.getCatalog().getTiDBInfoCache();
+            setTiDBInfoCache(tableInfoCache);
+        }
         if (tableInfo == null) {
             throw new RuntimeException(
                     String.format("Table %s.%s does not exist.", database, tableName));
@@ -156,6 +237,17 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                                         + getRuntimeContext().getIndexOfThisSubtask())
                         .build();
         executorService = Executors.newSingleThreadExecutor(threadFactory);
+
+        LOG.info("lockdirs  {}",lockDir);
+        File dir = new File(lockDir);
+        if(!dir.exists()){
+            boolean success = dir.mkdirs();
+            while(!success){
+                success = dir.mkdirs();
+                Thread.sleep(1000);
+            }
+            LOG.info("create lock dirs succeed");
+        }
     }
 
     @Override
@@ -163,33 +255,37 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         sourceContext = ctx;
         outputCollector.context = sourceContext;
 
-        int delay_seconds;
-        String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
-        if(delay_minute_env.isEmpty()) {
-            delay_seconds = 300;
+        String max_parallel = System.getenv("TASK_START_MAX_PARALLEL");
+        if(max_parallel.isEmpty()) {
+            maxParallel = 10;
         } else {
-            delay_seconds = Integer.parseInt(delay_minute_env) * 60;
+            maxParallel = Integer.parseInt(max_parallel);
         }
 
         int batchSize =  tiConf.getScanBatchSize();
-        LOG.info("============batchSize {}",batchSize);
-
-//        if(delayStartSeconds == 0) {
-//            Random random = new Random();
-//            delayStartSeconds = Math.abs(random.nextInt()) % 10;
-//            LOG.info("generate delayStartSeconds {} {}  delayStartSeconds {}",database, tableName,delayStartSeconds);
-//        }
+        LOG.info("============batchSize {} {} {}",batchSize,database,tableName);
 
         if (startupMode == StartupMode.INITIAL && !isInitalized && resolvedTs <= 0) {
             synchronized (sourceContext.getCheckpointLock()) {
-                LOG.info("wait for start readSnapshotEvents {} {}  delayStartSeconds {} ",database, tableName,delayStartSeconds);
-                Random random = new Random();
-                int tm = Math.abs(random.nextInt()) % delay_seconds;
-                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} seconds ",database, tableName,delay_minute_env,tm);
-                Thread.sleep(tm * 1000);
-//              Thread.sleep(delayStartSeconds * 1000);
-                session = TiSession.create(tiConf);
+                while(true){
+                    if (testStartTask()){
+                        if(createFileLock(database,tableName)){
+                            break;
+                        }
+                    }
+                    LOG.info("wait for start {} {}",database, tableName);
+                    Thread.sleep( 1000);
+                }
+                LOG.info("task begin running {} {} {}",database, tableName,max_parallel);
+                try{
+                    readSnapshotEvents();
+                }catch (Exception e){
+                    LOG.info("got exception {} {} {}",database,tableName,e);
+                    deleteFileLock(database,tableName);
+                    throw e;
+                }
                 readSnapshotEvents();
+                deleteFileLock(database,tableName);
             }
         } else {
             LOG.info("Skip snapshot read {} {} {} {}", database, tableName, isInitalized, resolvedTs);
@@ -202,6 +298,37 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         cdcClient.start(resolvedTs);
         running = true;
         readChangeEvents();
+    }
+
+    public boolean createFileLock(String database,String tableName) throws IOException {
+        String filePath = String.format("%s%s_%s",lockDir,database,tableName);
+        File file = new File(filePath);
+        if (file.exists()){
+            return true;
+        }
+        return file.createNewFile();
+    }
+
+    public boolean deleteFileLock(String database,String tableName) {
+        String filePath = String.format("%s%s_%s",lockDir,database,tableName);
+        File file = new File(filePath);
+        if (file.exists()){
+            boolean succeed = file.delete();
+            LOG.info("try delete lock file {} {}",filePath,succeed);
+            return succeed;
+        }
+        LOG.info("file lock not exist {} ",filePath);
+        return false;
+    }
+
+    public boolean testStartTask(){
+        File file = new File(lockDir);
+        File[] files =  file.listFiles();
+        LOG.info("current run task size is {} {}",files.length,maxParallel);
+        if(files.length >= maxParallel){
+            return false;
+        }
+        return true;
     }
 
     private void handleRow(final Cdcpb.Event.Row row) {

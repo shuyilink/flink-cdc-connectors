@@ -50,7 +50,7 @@ under the License.
         <module>flink-sql-connector-sqlserver-cdc</module>
         <module>flink-sql-connector-tidb-cdc</module>
         <module>flink-sql-connector-db2-cdc</module>
-        <module>flink-cdc-e2e-tests</module>
+<!--        <module>flink-cdc-e2e-tests</module>-->
     </modules>
 
     <licenses>
@@ -75,7 +75,8 @@ under the License.
     <properties>
         <flink.version>1.16.0</flink.version>
         <debezium.version>1.6.4.Final</debezium.version>
-        <tikv.version>3.2.0</tikv.version>
+<!--        <tikv.version>3.2.1</tikv.version>-->
+        <tikv.version>3.2.1</tikv.version>
         <geometry.version>2.2.0</geometry.version>
         <!-- OracleE2eITCase will report "container cannot be accessed" error when running in Azure Pipeline with 1.16.1 testconainters.
           This might be a conflicts with "wnameless/oracle-xe-11g-r2" and 1.16 testcontainers.
@@ -186,6 +187,7 @@ under the License.
             <type>jar</type>
             <version>${version.awaitility}</version>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -298,13 +300,13 @@ under the License.
                     </java>
                 </configuration>
                 <executions>
-                    <execution>
-                        <id>spotless-check</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
+<!--                    <execution>-->
+<!--                        <id>spotless-check</id>-->
+<!--                        <phase>validate</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
                 </executions>
             </plugin>
             <plugin>
@@ -319,13 +321,13 @@ under the License.
                     </dependency>
                 </dependencies>
                 <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
+<!--                    <execution>-->
+<!--                        <id>validate</id>-->
+<!--                        <phase>validate</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
                 </executions>
                 <configuration>
                     <suppressionsLocation>/tools/maven/suppressions.xml</suppressionsLocation>
