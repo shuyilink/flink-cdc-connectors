@@ -120,7 +120,6 @@ public class TDBSourceOptions {
 
 
         // 支持读取多个
-        configuration.getOptional(TIKV_GRPC_SCAN_BATCH_SIZE).ifPresent(tiConf::setScanBatchSize);
         configuration.getOptional(TIKV_CLIENT_CONCURRENCY).ifPresent(tiConf::setKvClientConcurrency);
         return tiConf;
     }

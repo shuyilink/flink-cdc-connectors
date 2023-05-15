@@ -100,6 +100,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     private boolean isInitalized = false;
 
+    private long tableId;
     public TiKVRichParallelSourceFunction(
             TiKVSnapshotEventDeserializationSchema<T> snapshotEventDeserializationSchema,
             TiKVChangeEventDeserializationSchema<T> changeEventDeserializationSchema,
@@ -123,12 +124,18 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         super.open(config);
         session = TiSession.create(tiConf);
 
+        int delay_seconds = 60;
+        Random random = new Random();
+        int tm = Math.abs(random.nextInt()) % delay_seconds;
+        Thread.sleep(tm * 1000);
+
         TiTableInfo tableInfo = session.getCatalog().getTable(database, tableName);
         if (tableInfo == null) {
             throw new RuntimeException(
                     String.format("Table %s.%s does not exist.", database, tableName));
         }
-        long tableId = tableInfo.getId();
+        LOG.info("======finish getTable {} {} {} seconds",database,tableName,tm);
+        tableId = tableInfo.getId();
         keyRange =
                 TableKeyRangeUtils.getTableKeyRange(
                         tableId,
@@ -166,19 +173,13 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         int delay_seconds;
         String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
         if(delay_minute_env.isEmpty()) {
-            delay_seconds = 300;
+            delay_seconds = 120;
         } else {
             delay_seconds = Integer.parseInt(delay_minute_env) * 60;
         }
 
         int batchSize =  tiConf.getScanBatchSize();
         LOG.info("============batchSize {}",batchSize);
-
-//        if(delayStartSeconds == 0) {
-//            Random random = new Random();
-//            delayStartSeconds = Math.abs(random.nextInt()) % 10;
-//            LOG.info("generate delayStartSeconds {} {}  delayStartSeconds {}",database, tableName,delayStartSeconds);
-//        }
 
         if (startupMode == StartupMode.INITIAL && !isInitalized && resolvedTs <= 0) {
             synchronized (sourceContext.getCheckpointLock()) {
@@ -187,8 +188,6 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                 int tm = Math.abs(random.nextInt()) % delay_seconds;
                 LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} seconds ",database, tableName,delay_minute_env,tm);
                 Thread.sleep(tm * 1000);
-//              Thread.sleep(delayStartSeconds * 1000);
-                session = TiSession.create(tiConf);
                 readSnapshotEvents();
             }
         } else {
@@ -231,6 +230,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     protected void readSnapshotEvents() throws Exception {
         LOG.info("read snapshot events {} {} {}", database, tableName, resolvedTs);
+        int count = 0;
         try (KVClient scanClient = session.createKVClient()) {
             long startTs = session.getTimestamp().getVersion();
             ByteString start = keyRange.getStart();
@@ -240,11 +240,13 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
                 if (segment.isEmpty()) {
                     resolvedTs = startTs;
+                    LOG.info("finish snapshot events {} {} {} {} {}", database, tableName, tableId,resolvedTs,count);
                     break;
                 }
 
                 for (final Kvrpcpb.KvPair pair : segment) {
                     if (TableKeyRangeUtils.isRecordKey(pair.getKey().toByteArray())) {
+                        count++;
                         snapshotEventDeserializationSchema.deserialize(pair, outputCollector);
                     }
                 }
@@ -336,12 +338,14 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     @Override
     public void initializeState(final FunctionInitializationContext context) throws Exception {
-        LOG.info("initialize checkpoint {} {} ", database, tableName);
+        LOG.info("initialize checkpoint {} {} {}", database, tableName);
+
         offsetState =
                 context.getOperatorStateStore()
                         .getListState(
                                 new ListStateDescriptor<>(
                                         "resolvedTsState", LongSerializer.INSTANCE));
+
         if (context.isRestored()) {
             for (final Long offset : offsetState.get()) {
                 resolvedTs = offset;
