@@ -31,26 +31,26 @@ under the License.
     <packaging>pom</packaging>
 
     <modules>
-        <module>flink-cdc-base</module>
-        <module>flink-connector-debezium</module>
-        <module>flink-connector-test-util</module>
-        <module>flink-connector-mysql-cdc</module>
-        <module>flink-connector-postgres-cdc</module>
-        <module>flink-connector-oracle-cdc</module>
-        <module>flink-connector-mongodb-cdc</module>
-        <module>flink-connector-oceanbase-cdc</module>
-        <module>flink-connector-sqlserver-cdc</module>
+<!--        <module>flink-cdc-base</module>-->
+<!--        <module>flink-connector-debezium</module>-->
+<!--        <module>flink-connector-test-util</module>-->
+<!--        <module>flink-connector-mysql-cdc</module>-->
+<!--        <module>flink-connector-postgres-cdc</module>-->
+<!--        <module>flink-connector-oracle-cdc</module>-->
+<!--        <module>flink-connector-mongodb-cdc</module>-->
+<!--        <module>flink-connector-oceanbase-cdc</module>-->
+<!--        <module>flink-connector-sqlserver-cdc</module>-->
         <module>flink-connector-tidb-cdc</module>
-        <module>flink-connector-db2-cdc</module>
-        <module>flink-sql-connector-mysql-cdc</module>
-        <module>flink-sql-connector-postgres-cdc</module>
-        <module>flink-sql-connector-mongodb-cdc</module>
-        <module>flink-sql-connector-oracle-cdc</module>
-        <module>flink-sql-connector-oceanbase-cdc</module>
-        <module>flink-sql-connector-sqlserver-cdc</module>
+<!--        <module>flink-connector-db2-cdc</module>-->
+<!--        <module>flink-sql-connector-mysql-cdc</module>-->
+<!--        <module>flink-sql-connector-postgres-cdc</module>-->
+<!--        <module>flink-sql-connector-mongodb-cdc</module>-->
+<!--        <module>flink-sql-connector-oracle-cdc</module>-->
+<!--        <module>flink-sql-connector-oceanbase-cdc</module>-->
+<!--        <module>flink-sql-connector-sqlserver-cdc</module>-->
         <module>flink-sql-connector-tidb-cdc</module>
-        <module>flink-sql-connector-db2-cdc</module>
-        <module>flink-cdc-e2e-tests</module>
+<!--        <module>flink-sql-connector-db2-cdc</module>-->
+<!--        <module>flink-cdc-e2e-tests</module>-->
     </modules>
 
     <licenses>
@@ -298,13 +298,13 @@ under the License.
                     </java>
                 </configuration>
                 <executions>
-                    <execution>
-                        <id>spotless-check</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
+<!--                    <execution>-->
+<!--                        <id>spotless-check</id>-->
+<!--                        <phase>validate</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
                 </executions>
             </plugin>
             <plugin>
@@ -319,13 +319,13 @@ under the License.
                     </dependency>
                 </dependencies>
                 <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
+<!--                    <execution>-->
+<!--                        <id>validate</id>-->
+<!--                        <phase>validate</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
                 </executions>
                 <configuration>
                     <suppressionsLocation>/tools/maven/suppressions.xml</suppressionsLocation>

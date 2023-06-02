@@ -16,6 +16,7 @@
 
 package com.ververica.cdc.connectors.tidb.table;
 
+import com.ververica.cdc.connectors.tidb.TiKVRichParallelSourceFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.RowType;
@@ -26,10 +27,16 @@ import org.apache.flink.util.FlinkRuntimeException;
 import com.ververica.cdc.connectors.tidb.TiKVChangeEventDeserializationSchema;
 import org.tikv.common.TiConfiguration;
 import org.tikv.common.key.RowKey;
+import org.tikv.common.meta.TiTableInfo;
 import org.tikv.kvproto.Cdcpb.Event.Row;
+
+import java.util.Optional;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.tikv.common.codec.TableCodec.decodeObjects;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Deserialization schema from TiKV Change Event to Flink Table/SQL internal data structure {@link
@@ -38,6 +45,8 @@ import static org.tikv.common.codec.TableCodec.decodeObjects;
 public class RowDataTiKVChangeEventDeserializationSchema
         extends RowDataTiKVEventDeserializationSchemaBase
         implements TiKVChangeEventDeserializationSchema<RowData> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RowDataTiKVChangeEventDeserializationSchema.class);
 
     private static final long serialVersionUID = 1L;
 
@@ -92,10 +101,13 @@ public class RowDataTiKVChangeEventDeserializationSchema
                     }
                     break;
                 } catch (final RuntimeException e) {
+                    String tableName = Optional.ofNullable(tableInfo).map(TiTableInfo::getName).orElse(null);
+                    LOG.error(String.format("RowDataTiKVChangeEventDeserializationSchema failed %s %s",tableName,e.toString()));
                     throw new FlinkRuntimeException(
                             String.format(
                                     "Fail to deserialize row: %s, table: %s",
-                                    row, tableInfo.getId()),
+                                    row,
+                                    tableName),
                             e);
                 }
             default:

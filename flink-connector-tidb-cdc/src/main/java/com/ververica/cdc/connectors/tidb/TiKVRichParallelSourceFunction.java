@@ -28,6 +28,7 @@ import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
 
 import org.apache.flink.shaded.guava30.com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -47,10 +48,7 @@ import org.tikv.kvproto.Kvrpcpb;
 import org.tikv.shade.com.google.protobuf.ByteString;
 import org.tikv.txn.KVClient;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -123,18 +121,12 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     public void open(final Configuration config) throws Exception {
         super.open(config);
         session = TiSession.create(tiConf);
-
-        int delay_seconds = 60;
-        Random random = new Random();
-        int tm = Math.abs(random.nextInt()) % delay_seconds;
-        Thread.sleep(tm * 1000);
-
         TiTableInfo tableInfo = session.getCatalog().getTable(database, tableName);
         if (tableInfo == null) {
             throw new RuntimeException(
                     String.format("Table %s.%s does not exist.", database, tableName));
         }
-        LOG.info("======finish getTable {} {} {} seconds",database,tableName,tm);
+
         tableId = tableInfo.getId();
         keyRange =
                 TableKeyRangeUtils.getTableKeyRange(
@@ -262,6 +254,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     protected void readChangeEvents() throws Exception {
         LOG.info("read change event from resolvedTs:{} {} {} ", database, tableName, resolvedTs);
+        BlockingQueue<Exception> exceptionBlockingQueue = new LinkedBlockingQueue<>();
         // child thread to sink committed rows.
         executorService.execute(
                 () -> {
@@ -271,7 +264,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                             changeEventDeserializationSchema.deserialize(
                                     committedRow, outputCollector);
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            exceptionBlockingQueue.add(e);
                         }
                     }
                 });
@@ -283,10 +276,15 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                 }
                 handleRow(row);
             }
+            Exception exception = exceptionBlockingQueue.poll();
+            if (exception != null) {
+                throw new FlinkRuntimeException("committed row exception:" + exception, exception);
+            }
             resolvedTs = cdcClient.getMaxResolvedTs();
             if (commits.size() > 0) {
                 flushRows(resolvedTs);
             }
+
         }
     }
 

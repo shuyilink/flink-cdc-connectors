@@ -100,12 +100,7 @@ public class CDCClient implements AutoCloseable {
     }
 
     public synchronized Row get() throws InterruptedException {
-        final CDCEvent event = eventsBuffer.poll();
-        if (event == null) {
-            Thread.sleep(1000);
-            return null;
-        }
-
+        final CDCEvent event = eventsBuffer.take();
         switch (event.eventType) {
             case ROW:
                 return event.row;
