@@ -30,6 +30,7 @@ import java.util.Map;
 /** Configurations for {@link TiDBSource}. */
 public class TDBSourceOptions {
     private static final Logger LOG = LoggerFactory.getLogger(TDBSourceOptions.class);
+
     private TDBSourceOptions() {}
 
     public static final ConfigOption<String> DATABASE_NAME =
@@ -100,7 +101,6 @@ public class TDBSourceOptions {
                     .noDefaultValue()
                     .withDescription("TiKV GRPC client consurrency size");
 
-
     public static TiConfiguration getTiConfiguration(
             final String pdAddrsStr, final Map<String, String> options) {
         final Configuration configuration = Configuration.fromMap(options);
@@ -118,9 +118,10 @@ public class TDBSourceOptions {
                 .getOptional(TIKV_BATCH_SCAN_CONCURRENCY)
                 .ifPresent(tiConf::setBatchScanConcurrency);
 
-
         // 支持读取多个
-        configuration.getOptional(TIKV_CLIENT_CONCURRENCY).ifPresent(tiConf::setKvClientConcurrency);
+        configuration
+                .getOptional(TIKV_CLIENT_CONCURRENCY)
+                .ifPresent(tiConf::setKvClientConcurrency);
         return tiConf;
     }
 }

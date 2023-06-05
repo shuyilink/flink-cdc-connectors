@@ -136,7 +136,13 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
     public DynamicTableSource copy() {
         TiDBTableSource source =
                 new TiDBTableSource(
-                        physicalSchema, database, tableName, pdAddresses,delayStartSeconds, startupOptions, options);
+                        physicalSchema,
+                        database,
+                        tableName,
+                        pdAddresses,
+                        delayStartSeconds,
+                        startupOptions,
+                        options);
         source.producedDataType = producedDataType;
         source.metadataKeys = metadataKeys;
         return source;

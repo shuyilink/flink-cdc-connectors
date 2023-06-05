@@ -16,7 +16,6 @@
 
 package com.ververica.cdc.connectors.tidb.table;
 
-import com.ververica.cdc.connectors.tidb.TiKVRichParallelSourceFunction;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.table.api.ValidationException;
@@ -24,6 +23,7 @@ import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,6 @@ import static com.ververica.cdc.debezium.utils.ResolvedSchemaUtils.getPhysicalSc
 public class TiDBTableSourceFactory implements DynamicTableSourceFactory {
 
     private static final String IDENTIFIER = "tidb-cdc";
-
 
     private static final Logger LOG = LoggerFactory.getLogger(TiDBTableSourceFactory.class);
 

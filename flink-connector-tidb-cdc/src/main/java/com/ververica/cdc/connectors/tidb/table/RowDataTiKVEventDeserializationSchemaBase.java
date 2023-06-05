@@ -51,7 +51,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public class RowDataTiKVEventDeserializationSchemaBase implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private static final Logger LOG = LoggerFactory.getLogger(RowDataTiKVEventDeserializationSchemaBase.class);
+    private static final Logger LOG =
+            LoggerFactory.getLogger(RowDataTiKVEventDeserializationSchemaBase.class);
 
     /** Whether the deserializer needs to handle metadata columns. */
     private final boolean hasMetadata;
@@ -488,7 +489,7 @@ public class RowDataTiKVEventDeserializationSchemaBase implements Serializable {
                 } else if (object instanceof Long) {
                     Long value = (Long) object;
                     bigDecimal = new BigDecimal(value.toString());
-//                    bigDecimal = new BigDecimal((String) object);
+                    //                    bigDecimal = new BigDecimal((String) object);
                 } else if (object instanceof Double) {
                     bigDecimal = BigDecimal.valueOf((Double) object);
                 } else if (object instanceof BigDecimal) {

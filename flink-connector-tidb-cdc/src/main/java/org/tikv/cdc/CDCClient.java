@@ -139,14 +139,17 @@ public class CDCClient implements AutoCloseable {
         final ArrayList<TiRegion> regionsToAdd = new ArrayList<>();
         final ArrayList<Long> regionsToRemove = new ArrayList<>();
 
-        LOGGER.info("keyRange applied before add {} remove {}",regionsToAdd,regionsToRemove);
+        LOGGER.info("keyRange applied before add {} remove {}", regionsToAdd, regionsToRemove);
 
         TiRegion newRegion = newRegionsIterator.hasNext() ? newRegionsIterator.next() : null;
         RegionCDCClient oldRegionClient =
                 oldRegionsIterator.hasNext() ? oldRegionsIterator.next() : null;
 
         while (newRegion != null && oldRegionClient != null) {
-            LOGGER.info("=============applyKeyRange new {} old {}",newRegion.getId(),oldRegionClient.getRegion().getId());
+            LOGGER.info(
+                    "=============applyKeyRange new {} old {}",
+                    newRegion.getId(),
+                    oldRegionClient.getRegion().getId());
             if (newRegion.getId() == oldRegionClient.getRegion().getId()) {
                 // check if should refresh region
                 if (!oldRegionClient.isRunning()) {
@@ -177,7 +180,7 @@ public class CDCClient implements AutoCloseable {
 
         removeRegions(regionsToRemove);
         addRegions(regionsToAdd, timestamp);
-        LOGGER.info("keyRange applied add {} remove {}",regionsToAdd,regionsToRemove);
+        LOGGER.info("keyRange applied add {} remove {}", regionsToAdd, regionsToRemove);
     }
 
     private synchronized void addRegions(final Iterable<TiRegion> regions, final long timestamp) {

@@ -16,7 +16,6 @@
 
 package org.tikv.common.operation.iterator;
 
-import com.ververica.cdc.connectors.tidb.TiKVRichParallelSourceFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tikv.common.TiConfiguration;
@@ -105,7 +104,12 @@ public abstract class ScanIterator implements Iterator<Kvrpcpb.KvPair> {
             // of a transaction. Otherwise, below code might lose data
             int scanLimit = Math.min(limit, conf.getScanBatchSize());
 
-            LOG.info("====== limit {} scanLimit {} cacheSize {},batchSize {}",limit,scanLimit,currentCache.size(),conf.getScanBatchSize());
+            LOG.info(
+                    "====== limit {} scanLimit {} cacheSize {},batchSize {}",
+                    limit,
+                    scanLimit,
+                    currentCache.size(),
+                    conf.getScanBatchSize());
             if (currentCache.size() < scanLimit) {
                 startKey = curRegionEndKey;
                 lastKey = Key.toRawKey(curRegionEndKey);
