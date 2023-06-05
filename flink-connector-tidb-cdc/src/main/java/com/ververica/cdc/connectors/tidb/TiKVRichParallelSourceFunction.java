@@ -120,12 +120,19 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     @Override
     public void open(final Configuration config) throws Exception {
         super.open(config);
+
+        int delay_seconds = 60;
+        Random random = new Random();
+        int tm = Math.abs(random.nextInt()) % delay_seconds;
+        Thread.sleep(tm * 1000);
+
         session = TiSession.create(tiConf);
         TiTableInfo tableInfo = session.getCatalog().getTable(database, tableName);
         if (tableInfo == null) {
             throw new RuntimeException(
                     String.format("Table %s.%s does not exist.", database, tableName));
         }
+        LOG.info("======finish getTable {} {} {} seconds",database,tableName,tm);
 
         tableId = tableInfo.getId();
         keyRange =
