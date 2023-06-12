@@ -98,6 +98,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     private boolean isInitalized = false;
 
+    private int retryCount = 3;
     private long tableId;
     public TiKVRichParallelSourceFunction(
             TiKVSnapshotEventDeserializationSchema<T> snapshotEventDeserializationSchema,
@@ -132,6 +133,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
             throw new RuntimeException(
                     String.format("Table %s.%s does not exist.", database, tableName));
         }
+
         LOG.info("======finish getTable {} {} {} seconds",database,tableName,tm);
 
         tableId = tableInfo.getId();
@@ -171,7 +173,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
         int delay_seconds;
         String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
-        if(delay_minute_env.isEmpty()) {
+        if(delay_minute_env == null || delay_minute_env.isEmpty()) {
             delay_seconds = 120;
         } else {
             delay_seconds = Integer.parseInt(delay_minute_env) * 60;
@@ -233,11 +235,18 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         try (KVClient scanClient = session.createKVClient()) {
             long startTs = session.getTimestamp().getVersion();
             ByteString start = keyRange.getStart();
+            int scanCount = 0;
             while (true) {
                 final List<Kvrpcpb.KvPair> segment =
                         scanClient.scan(start, keyRange.getEnd(), startTs);
 
                 if (segment.isEmpty()) {
+                    if(count == 0 && scanCount < retryCount){
+                        LOG.info("readSnapshotEvents fetch line is zero {} {} retry {}",database, tableName,scanCount);
+                        scanCount++;
+                        Thread.sleep(3 * 1000);
+                        continue;
+                    }
                     resolvedTs = startTs;
                     LOG.info("finish snapshot events {} {} {} {} {}", database, tableName, tableId,resolvedTs,count);
                     break;
