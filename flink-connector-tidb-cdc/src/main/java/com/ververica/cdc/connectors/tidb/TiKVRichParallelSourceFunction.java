@@ -297,6 +297,10 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                 throw new FlinkRuntimeException("committed row exception:" + exception, exception);
             }
             resolvedTs = cdcClient.getMaxResolvedTs();
+            if(resolvedTs == 0){
+                LOG.info("read change event exception resolvedTs is zero {} {}", database, tableName);
+                continue;
+            }
             if (commits.size() > 0) {
                 flushRows(resolvedTs);
             }

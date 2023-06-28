@@ -17,9 +17,11 @@
 package org.tikv.cdc;
 
 import org.apache.flink.shaded.guava30.com.google.common.base.Preconditions;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Multiset;
 import org.apache.flink.shaded.guava30.com.google.common.collect.Range;
 import org.apache.flink.shaded.guava30.com.google.common.collect.TreeMultiset;
 
+import org.apache.flink.util.FlinkRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tikv.common.TiSession;
@@ -119,6 +121,10 @@ public class CDCClient implements AutoCloseable {
     }
 
     public synchronized long getMaxResolvedTs() {
+        Multiset.Entry<Long> lastEntry = resolvedTsSet.lastEntry();
+        if (lastEntry == null) {
+            return 0;
+        }
         return resolvedTsSet.lastEntry().getElement();
     }
 
@@ -248,11 +254,13 @@ public class CDCClient implements AutoCloseable {
 
     public void handleErrorEvent(final long regionId, final Throwable error, long resolvedTs) {
         LOGGER.info("handle error: {}, regionId: {}", error, regionId);
-        final TiRegion region = regionClients.get(regionId).getRegion();
-        session.getRegionManager()
-                .onRequestFail(region); // invalidate cache for corresponding region
-
-        removeRegions(Arrays.asList(regionId));
-        applyKeyRange(keyRange, resolvedTs); // reapply the whole keyRange
+        throw new FlinkRuntimeException("restart job for handleErrorEvent");
+//
+//        final TiRegion region = regionClients.get(regionId).getRegion();
+//        session.getRegionManager()
+//                .onRequestFail(region); // invalidate cache for corresponding region
+//
+//        removeRegions(Arrays.asList(regionId));
+//        applyKeyRange(keyRange, resolvedTs); // reapply the whole keyRange
     }
 }
