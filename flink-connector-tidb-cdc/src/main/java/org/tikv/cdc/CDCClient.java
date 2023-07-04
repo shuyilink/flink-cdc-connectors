@@ -256,6 +256,7 @@ public class CDCClient implements AutoCloseable {
         LOGGER.info("handle error: {}, regionId: {}", error, regionId);
         throw new FlinkRuntimeException("restart job for handleErrorEvent");
 //
+
 //        final TiRegion region = regionClients.get(regionId).getRegion();
 //        session.getRegionManager()
 //                .onRequestFail(region); // invalidate cache for corresponding region

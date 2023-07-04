@@ -122,7 +122,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     public void open(final Configuration config) throws Exception {
         super.open(config);
 
-        int delay_seconds = 60;
+        int delay_seconds = 120;
         Random random = new Random();
         int tm = Math.abs(random.nextInt()) % delay_seconds;
         Thread.sleep(tm * 1000);
@@ -296,15 +296,15 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
             if (exception != null) {
                 throw new FlinkRuntimeException("committed row exception:" + exception, exception);
             }
-            resolvedTs = cdcClient.getMaxResolvedTs();
-            if(resolvedTs == 0){
+            long curResolvedTs = cdcClient.getMaxResolvedTs();
+            if(curResolvedTs == 0){
                 LOG.info("read change event exception resolvedTs is zero {} {}", database, tableName);
                 continue;
             }
             if (commits.size() > 0) {
-                flushRows(resolvedTs);
+                flushRows(curResolvedTs);
             }
-
+            resolvedTs = curResolvedTs;
         }
     }
 
