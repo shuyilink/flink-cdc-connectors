@@ -16,11 +16,14 @@
 
 package com.ververica.cdc.connectors.mysql.source.config;
 
+import com.ververica.cdc.connectors.mysql.source.utils.TableDiscoveryUtils;
 import org.apache.flink.annotation.Internal;
 
 import com.ververica.cdc.connectors.mysql.debezium.EmbeddedFlinkDatabaseHistory;
 import com.ververica.cdc.connectors.mysql.source.MySqlSource;
 import com.ververica.cdc.connectors.mysql.table.StartupOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -44,6 +47,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /** A factory to construct {@link MySqlSourceConfig}. */
 @Internal
 public class MySqlSourceConfigFactory implements Serializable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MySqlSourceConfigFactory.class);
+
 
     private static final long serialVersionUID = 1L;
 
@@ -72,6 +78,34 @@ public class MySqlSourceConfigFactory implements Serializable {
     private Duration heartbeatInterval = HEARTBEAT_INTERVAL.defaultValue();
     private Properties dbzProperties;
     private String chunkKeyColumn;
+
+    private String sinkHost;
+    private String sinkUser;
+    private String sinkPassword;
+
+    private int sinkPort;
+    private String sinkDB;
+
+    public MySqlSourceConfigFactory sinkHostName(String hostname) {
+        this.sinkHost = hostname;
+        return this;
+    }
+    public MySqlSourceConfigFactory sinkUser(String user) {
+        this.sinkUser = user;
+        return this;
+    }
+    public MySqlSourceConfigFactory sinkPassword(String password) {
+        this.sinkPassword = password;
+        return this;
+    }
+    public MySqlSourceConfigFactory sinkPort(int port) {
+        this.sinkPort = port;
+        return this;
+    }
+    public MySqlSourceConfigFactory sinkDB(String db) {
+        this.sinkDB = db;
+        return this;
+    }
 
     public MySqlSourceConfigFactory hostname(String hostname) {
         this.hostname = hostname;
@@ -310,11 +344,22 @@ public class MySqlSourceConfigFactory implements Serializable {
             jdbcProperties = new Properties();
         }
 
+        LOG.info("---------- init mysqlsourceconfigfactory");
+        Exception exp = new Exception("-----------");
+        exp.printStackTrace();
+
         return new MySqlSourceConfig(
                 hostname,
                 port,
                 username,
                 password,
+
+                sinkHost,
+                sinkUser,
+                sinkPassword,
+                sinkPort,
+                sinkDB,
+
                 databaseList,
                 tableList,
                 serverIdRange,

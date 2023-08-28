@@ -16,6 +16,7 @@
 
 package com.ververica.cdc.debezium.internal;
 
+import com.esotericsoftware.minlog.Log;
 import com.ververica.cdc.debezium.history.FlinkJsonTableChangeSerializer;
 import io.debezium.config.Configuration;
 import io.debezium.relational.TableId;
@@ -114,10 +115,13 @@ public class FlinkDatabaseSchemaHistory implements DatabaseHistory {
             String ddl,
             TableChanges changes)
             throws DatabaseHistoryException {
+
+        Log.info("=======log record",schemaName, ddl);        
         for (TableChanges.TableChange change : changes) {
             switch (change.getType()) {
                 case CREATE:
                 case ALTER:
+                // maybe hook from here
                     latestTables.put(
                             change.getId(),
                             new SchemaRecord(tableChangesSerializer.toDocument(change)));

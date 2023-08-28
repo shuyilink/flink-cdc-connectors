@@ -370,7 +370,7 @@ public class DebeziumSourceFunction<T> extends RichSourceFunction<T>
             properties.setProperty(FlinkOffsetBackingStore.OFFSET_STATE_VALUE, restoredOffsetState);
         }
         // DO NOT include schema change, e.g. DDL
-        properties.setProperty("include.schema.changes", "false");
+        properties.setProperty("include.schema.changes", "true");
         // disable the offset flush totally
         properties.setProperty("offset.flush.interval.ms", String.valueOf(Long.MAX_VALUE));
         // disable tombstones

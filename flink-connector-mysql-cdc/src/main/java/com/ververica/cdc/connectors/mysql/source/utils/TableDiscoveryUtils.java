@@ -42,6 +42,9 @@ public class TableDiscoveryUtils {
 
     public static List<TableId> listTables(JdbcConnection jdbc, RelationalTableFilters tableFilters)
             throws SQLException {
+
+        Exception exp = new Exception("-------------- listTables");
+        exp.printStackTrace();
         final List<TableId> capturedTableIds = new ArrayList<>();
         // -------------------
         // READ DATABASE NAMES
@@ -95,6 +98,9 @@ public class TableDiscoveryUtils {
 
     public static Map<TableId, TableChanges.TableChange> discoverCapturedTableSchemas(
             MySqlSourceConfig sourceConfig, MySqlConnection jdbc) {
+
+        Exception exp = new Exception("-------------- discoverCapturedTableSchemas");
+        exp.printStackTrace();
         final List<TableId> capturedTableIds;
         try {
             capturedTableIds = listTables(jdbc, sourceConfig.getTableFilters());

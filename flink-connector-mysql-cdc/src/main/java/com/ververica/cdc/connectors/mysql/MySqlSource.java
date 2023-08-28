@@ -16,11 +16,15 @@
 
 package com.ververica.cdc.connectors.mysql;
 
+import com.ververica.cdc.connectors.mysql.source.MySqlSourceBuilder;
+import com.ververica.cdc.connectors.mysql.table.MySqlTableSourceFactory;
 import com.ververica.cdc.connectors.mysql.table.StartupOptions;
 import com.ververica.cdc.debezium.DebeziumDeserializationSchema;
 import com.ververica.cdc.debezium.DebeziumSourceFunction;
 import com.ververica.cdc.debezium.internal.DebeziumOffset;
 import io.debezium.connector.mysql.MySqlConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -57,6 +61,8 @@ public class MySqlSource {
     @Deprecated
     public static class Builder<T> {
 
+        private static final Logger LOGGER = LoggerFactory.getLogger(MySqlSource.class);
+
         private int port = 3306; // default 3306 port
         private String hostname;
         private String[] databaseList;
@@ -68,6 +74,13 @@ public class MySqlSource {
         private Properties dbzProperties;
         private StartupOptions startupOptions = StartupOptions.initial();
         private DebeziumDeserializationSchema<T> deserializer;
+
+        private String sinkHost;
+        private String sinkUser;
+        private String sinkPassword;
+
+        private int sinkPort;
+        private String sinkDB;
 
         public Builder<T> hostname(String hostname) {
             this.hostname = hostname;
@@ -155,7 +168,31 @@ public class MySqlSource {
             return this;
         }
 
+        public Builder<T> sinkHostName(String hostname) {
+            this.sinkHost = hostname;
+            return this;
+        }
+        public Builder<T> sinkUser(String user) {
+            this.sinkUser = user;
+            return this;
+        }
+        public Builder<T> sinkPassword(String password) {
+            this.sinkPassword = password;
+            return this;
+        }
+        public Builder<T> sinkPort(int port) {
+            this.sinkPort = port;
+            return this;
+        }
+        public Builder<T> sinkDB(String db) {
+            this.sinkDB = db;
+            return this;
+        }
         public DebeziumSourceFunction<T> build() {
+            LOGGER.info("=============== MySqlSource");
+            Exception exp = new Exception("------");
+            exp.printStackTrace();
+
             Properties props = new Properties();
             props.setProperty("connector.class", MySqlConnector.class.getCanonicalName());
             // hard code server name, because we don't need to distinguish it, docs:

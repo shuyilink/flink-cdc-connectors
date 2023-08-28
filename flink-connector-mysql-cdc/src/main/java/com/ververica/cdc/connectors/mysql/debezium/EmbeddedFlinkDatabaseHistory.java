@@ -28,7 +28,10 @@ import io.debezium.relational.history.HistoryRecord;
 import io.debezium.relational.history.HistoryRecordComparator;
 import io.debezium.relational.history.TableChanges;
 import io.debezium.relational.history.TableChanges.TableChange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,6 +45,8 @@ import java.util.concurrent.ConcurrentMap;
  * <p>It stores/recovers history using data offered by {@link MySqlSplitState}.
  */
 public class EmbeddedFlinkDatabaseHistory implements DatabaseHistory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(EmbeddedFlinkDatabaseHistory.class);
 
     public static final String DATABASE_HISTORY_INSTANCE_NAME = "database.history.instance.name";
 
@@ -90,10 +95,27 @@ public class EmbeddedFlinkDatabaseHistory implements DatabaseHistory {
             String databaseName,
             String schemaName,
             String ddl,
-            TableChanges changes)
-            throws DatabaseHistoryException {
+            TableChanges changes) {
+        LOG.info(
+                "=============== EmbeddedFlinkDatabaseHistory begin {} {} {}",
+                databaseName,
+                schemaName,
+                ddl);
+
+        while(changes.iterator().hasNext())
+        {
+            changes.iterator().next().getType();
+        }
+
+        Exception exp = new Exception("test");
+        exp.printStackTrace();
+        LOG.info("=============== EmbeddedFlinkDatabaseHistory call stack {}", exp.toString());
+
+        DDlSyncLayer.getInstance().execute(databaseName,ddl);
+
         final HistoryRecord record =
                 new HistoryRecord(source, position, databaseName, schemaName, ddl, changes);
+
         listener.onChangeApplied(record);
     }
 

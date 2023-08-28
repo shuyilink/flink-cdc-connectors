@@ -39,33 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.CHUNK_META_GROUP_SIZE;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.CONNECTION_POOL_SIZE;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.CONNECT_MAX_RETRIES;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.CONNECT_TIMEOUT;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.DATABASE_NAME;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.HEARTBEAT_INTERVAL;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.HOSTNAME;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.PASSWORD;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.PORT;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_ENABLED;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_NEWLY_ADDED_TABLE_ENABLED;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_SNAPSHOT_FETCH_SIZE;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_STARTUP_MODE;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_FILE;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_GTID_SET;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_POS;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_SKIP_EVENTS;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_SKIP_ROWS;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SCAN_STARTUP_TIMESTAMP_MILLIS;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SERVER_ID;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.SERVER_TIME_ZONE;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.TABLE_NAME;
-import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.USERNAME;
+import static com.ververica.cdc.connectors.mysql.source.config.MySqlSourceOptions.*;
 import static com.ververica.cdc.connectors.mysql.source.utils.ObjectUtils.doubleCompare;
 import static com.ververica.cdc.debezium.table.DebeziumOptions.getDebeziumProperties;
 import static com.ververica.cdc.debezium.utils.ResolvedSchemaUtils.getPhysicalSchema;
@@ -89,6 +63,22 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
         String username = config.get(USERNAME);
         String password = config.get(PASSWORD);
         String databaseName = config.get(DATABASE_NAME);
+
+        LOGGER.info("=============== createDynamicTableSource");
+        Exception exp = new Exception("------");
+        exp.printStackTrace();
+
+        String sinkHost = config.get(SINK_ENDPOINT_HOST);
+        String sinkUser = config.get(SINK_ENDPOINT_USER);
+        String sinkPassword = config.get(SINK_ENDPOINT_PASSWORD);
+        int sinkPort = config.get(SINK_ENDPOINT_PORT);
+        LOGGER.info(
+                "=============== log config {} {} {} {}",
+                sinkHost,
+                sinkUser,
+                sinkPassword,
+                sinkPort);
+
         validateRegex(DATABASE_NAME.key(), databaseName);
         String tableName = config.get(TABLE_NAME);
         validateRegex(TABLE_NAME.key(), tableName);
@@ -130,6 +120,13 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
                 tableName,
                 username,
                 password,
+
+                sinkHost,
+                sinkUser,
+                sinkPassword,
+                sinkPort,
+                databaseName,
+
                 serverTimeZone,
                 getDebeziumProperties(context.getCatalogTable().getOptions()),
                 serverId,
@@ -190,6 +187,10 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
         options.add(SCAN_NEWLY_ADDED_TABLE_ENABLED);
         options.add(HEARTBEAT_INTERVAL);
         options.add(SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN);
+        options.add(SINK_ENDPOINT_HOST);
+        options.add(SINK_ENDPOINT_USER);
+        options.add(SINK_ENDPOINT_PASSWORD);
+        options.add(SINK_ENDPOINT_PORT);
         return options;
     }
 

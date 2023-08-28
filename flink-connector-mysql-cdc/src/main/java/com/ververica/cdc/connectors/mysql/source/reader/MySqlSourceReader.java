@@ -16,6 +16,7 @@
 
 package com.ververica.cdc.connectors.mysql.source.reader;
 
+import com.ververica.cdc.connectors.mysql.debezium.DDlSyncLayer;
 import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
@@ -213,6 +214,13 @@ public class MySqlSourceReader<T>
             try (MySqlConnection jdbc = DebeziumUtils.createMySqlConnection(sourceConfig)) {
                 Map<TableId, TableChanges.TableChange> tableSchemas =
                         TableDiscoveryUtils.discoverCapturedTableSchemas(sourceConfig, jdbc);
+
+                DDlSyncLayer.getInstance().initParam(
+                        sourceConfig.getSinkHostname(),
+                        sourceConfig.getSinkPort(),
+                        sourceConfig.getSinkUsername(),
+                        sourceConfig.getSinkPassword(),
+                        sourceConfig.getSinkDB());
                 LOG.info("The table schema discovery for binlog split {} success", splitId);
                 return MySqlBinlogSplit.fillTableSchemas(split, tableSchemas);
             } catch (SQLException e) {

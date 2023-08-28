@@ -34,6 +34,8 @@ import com.ververica.cdc.debezium.DebeziumDeserializationSchema;
 import com.ververica.cdc.debezium.DebeziumSourceFunction;
 import com.ververica.cdc.debezium.table.MetadataConverter;
 import com.ververica.cdc.debezium.table.RowDataDebeziumDeserializeSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -55,6 +57,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * description.
  */
 public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadata {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MySqlTableSource.class);
+
 
     private final ResolvedSchema physicalSchema;
     private final int port;
@@ -81,6 +86,13 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
     private final Duration heartbeatInterval;
     private final String chunkKeyColumn;
 
+    private String sinkHost;
+    private String sinkUser;
+    private String sinkPassword;
+
+    private int sinkPort;
+    private String sinkDB;
+
     // --------------------------------------------------------------------------------------------
     // Mutable attributes
     // --------------------------------------------------------------------------------------------
@@ -99,6 +111,13 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
             String tableName,
             String username,
             String password,
+            
+            String sinkHost,
+            String sinkUser,
+            String sinkPassword,
+            int sinkPort,
+            String sinkDB,
+
             ZoneId serverTimeZone,
             Properties dbzProperties,
             @Nullable String serverId,
@@ -123,6 +142,13 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
         this.tableName = checkNotNull(tableName);
         this.username = checkNotNull(username);
         this.password = checkNotNull(password);
+
+        this.sinkHost = sinkHost;
+        this.sinkUser = sinkUser;
+        this.sinkPassword = sinkPassword;
+        this.sinkPort = sinkPort;
+        this.sinkDB = sinkDB;
+
         this.serverId = serverId;
         this.serverTimeZone = serverTimeZone;
         this.dbzProperties = dbzProperties;
@@ -143,6 +169,9 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
         this.metadataKeys = Collections.emptyList();
         this.heartbeatInterval = heartbeatInterval;
         this.chunkKeyColumn = chunkKeyColumn;
+
+        Exception exp = new Exception("----------- MySqlTableSource init");
+        exp.printStackTrace();
     }
 
     @Override
@@ -157,6 +186,10 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
 
     @Override
     public ScanRuntimeProvider getScanRuntimeProvider(ScanContext scanContext) {
+
+        Exception exp = new Exception("----------- getScanRuntimeProvider");
+        exp.printStackTrace();
+
         RowType physicalDataType =
                 (RowType) physicalSchema.toPhysicalRowDataType().getLogicalType();
         MetadataConverter[] metadataConverters = getMetadataConverters();
@@ -198,6 +231,11 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                             .jdbcProperties(jdbcProperties)
                             .heartbeatInterval(heartbeatInterval)
                             .chunkKeyColumn(chunkKeyColumn)
+                            .sinkHostName(sinkHost)
+                            .sinkUser(sinkUser)
+                            .sinkPassword(sinkPassword)
+                            .sinkPort(sinkPort)
+                            .sinkDB(sinkDB)
                             .build();
             return SourceProvider.of(parallelSource);
         } else {
@@ -212,6 +250,11 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                             .serverTimeZone(serverTimeZone.toString())
                             .debeziumProperties(dbzProperties)
                             .startupOptions(startupOptions)
+                            .sinkHostName(sinkHost)
+                            .sinkUser(sinkUser)
+                            .sinkPassword(sinkPassword)
+                            .sinkPort(sinkPort)
+                            .sinkDB(sinkDB)
                             .deserializer(deserializer);
             Optional.ofNullable(serverId)
                     .ifPresent(serverId -> builder.serverId(Integer.parseInt(serverId)));
@@ -261,6 +304,13 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                         tableName,
                         username,
                         password,
+
+                        sinkHost,
+                        sinkUser,
+                        sinkPassword,
+                        sinkPort,
+                        sinkDB,
+
                         serverTimeZone,
                         dbzProperties,
                         serverId,

@@ -103,6 +103,10 @@ public class StatefulTaskContext {
     }
 
     public void configure(MySqlSplit mySqlSplit) {
+
+        Exception exp = new Exception("StatefulTaskContext exception");
+        exp.printStackTrace();
+
         // initial stateful objects
         final boolean tableIdCaseInsensitive = connection.isTableIdCaseSensitive();
         this.topicSelector = MySqlTopicSelector.defaultSelector(connectorConfig);
