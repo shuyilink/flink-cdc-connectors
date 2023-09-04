@@ -75,12 +75,9 @@ public class MySqlSource {
         private StartupOptions startupOptions = StartupOptions.initial();
         private DebeziumDeserializationSchema<T> deserializer;
 
-        private String sinkHost;
+        private String sinkJDBCURL;
         private String sinkUser;
         private String sinkPassword;
-
-        private int sinkPort;
-        private String sinkDB;
 
         public Builder<T> hostname(String hostname) {
             this.hostname = hostname;
@@ -168,8 +165,8 @@ public class MySqlSource {
             return this;
         }
 
-        public Builder<T> sinkHostName(String hostname) {
-            this.sinkHost = hostname;
+        public Builder<T> sinkJDBCURL(String sinkJDBCURL) {
+            this.sinkJDBCURL = sinkJDBCURL;
             return this;
         }
         public Builder<T> sinkUser(String user) {
@@ -180,14 +177,7 @@ public class MySqlSource {
             this.sinkPassword = password;
             return this;
         }
-        public Builder<T> sinkPort(int port) {
-            this.sinkPort = port;
-            return this;
-        }
-        public Builder<T> sinkDB(String db) {
-            this.sinkDB = db;
-            return this;
-        }
+
         public DebeziumSourceFunction<T> build() {
             LOGGER.info("=============== MySqlSource");
             Exception exp = new Exception("------");

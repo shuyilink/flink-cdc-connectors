@@ -64,12 +64,9 @@ public class MySqlSourceConfig implements Serializable {
     private final Configuration dbzConfiguration;
     private final MySqlConnectorConfig dbzMySqlConfig;
 
-    private String sinkHost;
+    private String sinkJDBCURL;
     private String sinkUser;
     private String sinkPassword;
-
-    private int sinkPort;
-    private String sinkDB;
 
     MySqlSourceConfig(
             String hostname,
@@ -77,11 +74,9 @@ public class MySqlSourceConfig implements Serializable {
             String username,
             String password,
 
-            String sinkHost,
+            String sinkJDBCURL,
             String sinkUser,
             String sinkPassword,
-            int sinkPort,
-            String sinkDB,
 
             List<String> databaseList,
             List<String> tableList,
@@ -126,20 +121,14 @@ public class MySqlSourceConfig implements Serializable {
         this.jdbcProperties = jdbcProperties;
         this.chunkKeyColumn = chunkKeyColumn;
 
-        this.sinkHost = sinkHost;
+        this.sinkJDBCURL = sinkJDBCURL;
         this.sinkUser = sinkUser;
         this.sinkPassword = sinkPassword;
-        this.sinkPort = sinkPort;
-        this.sinkDB = sinkDB;
 
     }
 
-    public String getSinkHostname() {
-        return sinkHost;
-    }
-
-    public int getSinkPort() {
-        return sinkPort;
+    public String getsinkJDBCURL() {
+        return sinkJDBCURL;
     }
 
     public String getSinkUsername() {
@@ -149,11 +138,6 @@ public class MySqlSourceConfig implements Serializable {
     public String getSinkPassword() {
         return sinkPassword;
     }
-
-    public String getSinkDB() {
-        return sinkDB;
-    }
-
 
     public String getHostname() {
         return hostname;

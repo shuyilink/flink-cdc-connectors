@@ -97,21 +97,25 @@ public class EmbeddedFlinkDatabaseHistory implements DatabaseHistory {
             String ddl,
             TableChanges changes) {
         LOG.info(
-                "=============== EmbeddedFlinkDatabaseHistory begin {} {} {}",
+                "=============== EmbeddedFlinkDatabaseHistory begin {} {} {} {} {} {}",
                 databaseName,
                 schemaName,
-                ddl);
-
-        while(changes.iterator().hasNext())
-        {
-            changes.iterator().next().getType();
-        }
+                ddl,
+                changes,
+                source,
+                position);
 
         Exception exp = new Exception("test");
         exp.printStackTrace();
         LOG.info("=============== EmbeddedFlinkDatabaseHistory call stack {}", exp.toString());
 
         DDlSyncLayer.getInstance().execute(databaseName,ddl);
+
+        while(changes.iterator().hasNext())
+        {
+            changes.iterator().next().getType();
+        }
+
 
         final HistoryRecord record =
                 new HistoryRecord(source, position, databaseName, schemaName, ddl, changes);

@@ -79,15 +79,13 @@ public class MySqlSourceConfigFactory implements Serializable {
     private Properties dbzProperties;
     private String chunkKeyColumn;
 
-    private String sinkHost;
     private String sinkUser;
     private String sinkPassword;
 
-    private int sinkPort;
-    private String sinkDB;
+    private String sinkJDBCURL;
 
-    public MySqlSourceConfigFactory sinkHostName(String hostname) {
-        this.sinkHost = hostname;
+    public MySqlSourceConfigFactory sinkJDBCURL(String sinkJDBCURL) {
+        this.sinkJDBCURL = sinkJDBCURL;
         return this;
     }
     public MySqlSourceConfigFactory sinkUser(String user) {
@@ -96,14 +94,6 @@ public class MySqlSourceConfigFactory implements Serializable {
     }
     public MySqlSourceConfigFactory sinkPassword(String password) {
         this.sinkPassword = password;
-        return this;
-    }
-    public MySqlSourceConfigFactory sinkPort(int port) {
-        this.sinkPort = port;
-        return this;
-    }
-    public MySqlSourceConfigFactory sinkDB(String db) {
-        this.sinkDB = db;
         return this;
     }
 
@@ -344,7 +334,7 @@ public class MySqlSourceConfigFactory implements Serializable {
             jdbcProperties = new Properties();
         }
 
-        LOG.info("---------- init mysqlsourceconfigfactory");
+        LOG.info("---------- init mysqlsourceconfigfactory {}",props.toString());
         Exception exp = new Exception("-----------");
         exp.printStackTrace();
 
@@ -354,11 +344,9 @@ public class MySqlSourceConfigFactory implements Serializable {
                 username,
                 password,
 
-                sinkHost,
+                sinkJDBCURL,
                 sinkUser,
                 sinkPassword,
-                sinkPort,
-                sinkDB,
 
                 databaseList,
                 tableList,

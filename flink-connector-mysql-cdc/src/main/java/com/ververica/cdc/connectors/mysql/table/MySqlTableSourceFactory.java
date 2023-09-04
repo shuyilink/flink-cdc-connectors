@@ -68,16 +68,14 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
         Exception exp = new Exception("------");
         exp.printStackTrace();
 
-        String sinkHost = config.get(SINK_ENDPOINT_HOST);
+        String sinkJDBCURL = config.get(SINK_JDBC_URL);
         String sinkUser = config.get(SINK_ENDPOINT_USER);
         String sinkPassword = config.get(SINK_ENDPOINT_PASSWORD);
-        int sinkPort = config.get(SINK_ENDPOINT_PORT);
         LOGGER.info(
                 "=============== log config {} {} {} {}",
-                sinkHost,
+                sinkJDBCURL,
                 sinkUser,
-                sinkPassword,
-                sinkPort);
+                sinkPassword);
 
         validateRegex(DATABASE_NAME.key(), databaseName);
         String tableName = config.get(TABLE_NAME);
@@ -121,11 +119,9 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
                 username,
                 password,
 
-                sinkHost,
+                sinkJDBCURL,
                 sinkUser,
                 sinkPassword,
-                sinkPort,
-                databaseName,
 
                 serverTimeZone,
                 getDebeziumProperties(context.getCatalogTable().getOptions()),
@@ -187,10 +183,9 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
         options.add(SCAN_NEWLY_ADDED_TABLE_ENABLED);
         options.add(HEARTBEAT_INTERVAL);
         options.add(SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN);
-        options.add(SINK_ENDPOINT_HOST);
+        options.add(SINK_JDBC_URL);
         options.add(SINK_ENDPOINT_USER);
         options.add(SINK_ENDPOINT_PASSWORD);
-        options.add(SINK_ENDPOINT_PORT);
         return options;
     }
 

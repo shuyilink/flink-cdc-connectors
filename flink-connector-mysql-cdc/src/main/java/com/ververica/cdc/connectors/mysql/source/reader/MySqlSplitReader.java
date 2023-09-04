@@ -49,6 +49,7 @@ import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.createMy
 public class MySqlSplitReader implements SplitReader<SourceRecords, MySqlSplit> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MySqlSplitReader.class);
+
     private final Queue<MySqlSplit> splits;
     private final MySqlSourceConfig sourceConfig;
     private final int subtaskId;
@@ -63,6 +64,7 @@ public class MySqlSplitReader implements SplitReader<SourceRecords, MySqlSplit> 
         this.subtaskId = subtaskId;
         this.splits = new ArrayDeque<>();
         this.context = context;
+
     }
 
     @Override

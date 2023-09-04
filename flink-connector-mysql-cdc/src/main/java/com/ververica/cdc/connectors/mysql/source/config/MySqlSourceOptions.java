@@ -191,8 +191,8 @@ public class MySqlSourceOptions {
                     .withDescription(
                             "Optional interval of sending heartbeat event for tracing the latest available binlog offsets");
 
-    public static final ConfigOption<String> SINK_ENDPOINT_HOST =
-            ConfigOptions.key("sink.endpoint.host").stringType().noDefaultValue();
+    public static final ConfigOption<String> SINK_JDBC_URL =
+            ConfigOptions.key("sink.jdbc.url").stringType().noDefaultValue();
 
     public static final ConfigOption<String> SINK_ENDPOINT_USER =
             ConfigOptions.key("sink.endpoint.user").stringType().noDefaultValue();
@@ -200,8 +200,7 @@ public class MySqlSourceOptions {
     public static final ConfigOption<String> SINK_ENDPOINT_PASSWORD =
             ConfigOptions.key("sink.endpoint.password").stringType().noDefaultValue();
 
-    public static final ConfigOption<Integer> SINK_ENDPOINT_PORT =
-            ConfigOptions.key("sink.endpoint.port").intType().noDefaultValue();
+
 
     // ----------------------------------------------------------------------------
     // experimental options, won't add them to documentation

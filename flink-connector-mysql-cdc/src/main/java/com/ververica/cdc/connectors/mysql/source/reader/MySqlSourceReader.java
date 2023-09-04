@@ -216,11 +216,9 @@ public class MySqlSourceReader<T>
                         TableDiscoveryUtils.discoverCapturedTableSchemas(sourceConfig, jdbc);
 
                 DDlSyncLayer.getInstance().initParam(
-                        sourceConfig.getSinkHostname(),
-                        sourceConfig.getSinkPort(),
+                        sourceConfig.getsinkJDBCURL(),
                         sourceConfig.getSinkUsername(),
-                        sourceConfig.getSinkPassword(),
-                        sourceConfig.getSinkDB());
+                        sourceConfig.getSinkPassword());
                 LOG.info("The table schema discovery for binlog split {} success", splitId);
                 return MySqlBinlogSplit.fillTableSchemas(split, tableSchemas);
             } catch (SQLException e) {

@@ -236,8 +236,8 @@ public class MySqlSourceBuilder<T> {
         return this;
     }
 
-    public MySqlSourceBuilder<T> sinkHostName(String hostname) {
-        this.configFactory.sinkHostName(hostname);
+    public MySqlSourceBuilder<T> sinkJDBCURL(String sinkJDBCURL) {
+        this.configFactory.sinkJDBCURL(sinkJDBCURL);
         return this;
     }
     public MySqlSourceBuilder<T> sinkUser(String user) {
@@ -246,14 +246,6 @@ public class MySqlSourceBuilder<T> {
     }
     public MySqlSourceBuilder<T> sinkPassword(String password) {
         this.configFactory.sinkPassword(password);
-        return this;
-    }
-    public MySqlSourceBuilder<T> sinkPort(int port) {
-        this.configFactory.sinkPort(port);
-        return this;
-    }
-    public MySqlSourceBuilder<T> sinkDB(String db) {
-        this.configFactory.sinkDB(db);
         return this;
     }
 
