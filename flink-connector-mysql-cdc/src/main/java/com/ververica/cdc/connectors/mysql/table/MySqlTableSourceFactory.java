@@ -68,12 +68,12 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
         Exception exp = new Exception("------");
         exp.printStackTrace();
 
-        String sinkJDBCURL = config.get(SINK_JDBC_URL);
+        String ddlCaptureJDBCURL = config.get(SINK_JDBC_URL);
         String sinkUser = config.get(SINK_ENDPOINT_USER);
         String sinkPassword = config.get(SINK_ENDPOINT_PASSWORD);
         LOGGER.info(
                 "=============== log config {} {} {} {}",
-                sinkJDBCURL,
+                ddlCaptureJDBCURL,
                 sinkUser,
                 sinkPassword);
 
@@ -119,7 +119,7 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
                 username,
                 password,
 
-                sinkJDBCURL,
+                ddlCaptureJDBCURL,
                 sinkUser,
                 sinkPassword,
 

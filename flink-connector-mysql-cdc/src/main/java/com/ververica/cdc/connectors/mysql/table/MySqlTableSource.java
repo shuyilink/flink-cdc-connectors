@@ -86,7 +86,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
     private final Duration heartbeatInterval;
     private final String chunkKeyColumn;
 
-    private String sinkJDBCURL;
+    private String ddlCaptureJDBCURL;
     private String sinkUser;
     private String sinkPassword;
 
@@ -109,7 +109,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
             String username,
             String password,
             
-            String sinkJDBCURL,
+            String ddlCaptureJDBCURL,
             String sinkUser,
             String sinkPassword,
 
@@ -138,7 +138,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
         this.username = checkNotNull(username);
         this.password = checkNotNull(password);
 
-        this.sinkJDBCURL = sinkJDBCURL;
+        this.ddlCaptureJDBCURL = ddlCaptureJDBCURL;
         this.sinkUser = sinkUser;
         this.sinkPassword = sinkPassword;
 
@@ -224,7 +224,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                             .jdbcProperties(jdbcProperties)
                             .heartbeatInterval(heartbeatInterval)
                             .chunkKeyColumn(chunkKeyColumn)
-                            .sinkJDBCURL(sinkJDBCURL)
+                            .ddlCaptureJDBCURL(ddlCaptureJDBCURL)
                             .sinkUser(sinkUser)
                             .sinkPassword(sinkPassword)
                             .build();
@@ -241,7 +241,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                             .serverTimeZone(serverTimeZone.toString())
                             .debeziumProperties(dbzProperties)
                             .startupOptions(startupOptions)
-                            .sinkJDBCURL(sinkJDBCURL)
+                            .ddlCaptureJDBCURL(ddlCaptureJDBCURL)
                             .sinkUser(sinkUser)
                             .sinkPassword(sinkPassword)
                             .deserializer(deserializer);
@@ -294,7 +294,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                         username,
                         password,
 
-                        sinkJDBCURL,
+                        ddlCaptureJDBCURL,
                         sinkUser,
                         sinkPassword,
 

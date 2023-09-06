@@ -1,37 +1,13 @@
-/*
- * Copyright 2022 Ververica Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.ververica.cdc.connectors.mysql.debezium;
 
-import com.ververica.cdc.connectors.mysql.source.split.MySqlSplitState;
 import io.debezium.config.Configuration;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
 import io.debezium.relational.ddl.DdlParser;
-import io.debezium.relational.history.DatabaseHistory;
-import io.debezium.relational.history.DatabaseHistoryException;
-import io.debezium.relational.history.DatabaseHistoryListener;
-import io.debezium.relational.history.HistoryRecord;
-import io.debezium.relational.history.HistoryRecordComparator;
-import io.debezium.relational.history.TableChanges;
-import io.debezium.relational.history.TableChanges.TableChange;
+import io.debezium.relational.history.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,21 +15,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * A {@link DatabaseHistory} implementation which store the latest table schema in Flink state.
- *
- * <p>It stores/recovers history using data offered by {@link MySqlSplitState}.
- */
-public class EmbeddedFlinkDatabaseHistory implements DatabaseHistory {
+public class DatabaseHistorySyncLayer implements DatabaseHistory {
 
-    private static final Logger LOG = LoggerFactory.getLogger(EmbeddedFlinkDatabaseHistory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DatabaseHistorySyncLayer.class);
 
     public static final String DATABASE_HISTORY_INSTANCE_NAME = "database.history.instance.name";
 
-    public static final ConcurrentMap<String, Collection<TableChange>> TABLE_SCHEMAS =
+    public static final ConcurrentMap<String, Collection<TableChanges.TableChange>> TABLE_SCHEMAS =
             new ConcurrentHashMap<>();
 
-    private Map<TableId, TableChange> tableSchemas;
+    private Map<TableId, TableChanges.TableChange> tableSchemas;
     private DatabaseHistoryListener listener;
     private boolean storeOnlyMonitoredTablesDdl;
     private boolean skipUnparseableDDL;
@@ -71,7 +42,7 @@ public class EmbeddedFlinkDatabaseHistory implements DatabaseHistory {
         // recover
         String instanceName = config.getString(DATABASE_HISTORY_INSTANCE_NAME);
         this.tableSchemas = new HashMap<>();
-        for (TableChange tableChange : removeHistory(instanceName)) {
+        for (TableChanges.TableChange tableChange : removeHistory(instanceName)) {
             tableSchemas.put(tableChange.getId(), tableChange);
         }
     }
@@ -96,24 +67,26 @@ public class EmbeddedFlinkDatabaseHistory implements DatabaseHistory {
             String schemaName,
             String ddl,
             TableChanges changes) {
-
-        while(changes.iterator().hasNext())
-        {
-            changes.iterator().next().getType();
-        }
-
-
-        final HistoryRecord record =
-                new HistoryRecord(source, position, databaseName, schemaName, ddl, changes);
-
-        listener.onChangeApplied(record);
+        LOG.info(
+                "DatabaseHistorySyncLayer record {} {} {} {} {} {}",
+                databaseName,
+                schemaName,
+                ddl,
+                changes,
+                source,
+                position);
+//
+//        Exception exp = new Exception("test");
+//        exp.printStackTrace();
+//        LOG.info("-------------- DatabaseHistorySyncLayer call stack {}", exp.toString());
+        DDlSyncLayer.getInstance().execute(databaseName,ddl);
     }
 
     @Override
     public void recover(
             Map<String, ?> source, Map<String, ?> position, Tables schema, DdlParser ddlParser) {
         listener.recoveryStarted();
-        for (TableChange tableChange : tableSchemas.values()) {
+        for (TableChanges.TableChange tableChange : tableSchemas.values()) {
             schema.overwriteTable(tableChange.getTable());
         }
         listener.recoveryStopped();
@@ -149,15 +122,15 @@ public class EmbeddedFlinkDatabaseHistory implements DatabaseHistory {
         return skipUnparseableDDL;
     }
 
-    public static void registerHistory(String engineName, Collection<TableChange> engineHistory) {
+    public static void registerHistory(String engineName, Collection<TableChanges.TableChange> engineHistory) {
         TABLE_SCHEMAS.put(engineName, engineHistory);
     }
 
-    public static Collection<TableChange> removeHistory(String engineName) {
+    public static Collection<TableChanges.TableChange> removeHistory(String engineName) {
         if (engineName == null) {
             return Collections.emptyList();
         }
-        Collection<TableChange> tableChanges = TABLE_SCHEMAS.remove(engineName);
+        Collection<TableChanges.TableChange> tableChanges = TABLE_SCHEMAS.remove(engineName);
         return tableChanges != null ? tableChanges : Collections.emptyList();
     }
 }

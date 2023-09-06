@@ -75,7 +75,7 @@ public class MySqlSource {
         private StartupOptions startupOptions = StartupOptions.initial();
         private DebeziumDeserializationSchema<T> deserializer;
 
-        private String sinkJDBCURL;
+        private String ddlCaptureJDBCURL;
         private String sinkUser;
         private String sinkPassword;
 
@@ -165,8 +165,8 @@ public class MySqlSource {
             return this;
         }
 
-        public Builder<T> sinkJDBCURL(String sinkJDBCURL) {
-            this.sinkJDBCURL = sinkJDBCURL;
+        public Builder<T> ddlCaptureJDBCURL(String ddlCaptureJDBCURL) {
+            this.ddlCaptureJDBCURL = ddlCaptureJDBCURL;
             return this;
         }
         public Builder<T> sinkUser(String user) {

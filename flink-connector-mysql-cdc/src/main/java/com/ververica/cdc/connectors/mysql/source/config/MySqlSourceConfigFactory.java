@@ -16,10 +16,11 @@
 
 package com.ververica.cdc.connectors.mysql.source.config;
 
+import com.ververica.cdc.connectors.mysql.debezium.DDlSyncLayer;
+import com.ververica.cdc.connectors.mysql.debezium.DatabaseHistorySyncLayer;
 import com.ververica.cdc.connectors.mysql.source.utils.TableDiscoveryUtils;
 import org.apache.flink.annotation.Internal;
 
-import com.ververica.cdc.connectors.mysql.debezium.EmbeddedFlinkDatabaseHistory;
 import com.ververica.cdc.connectors.mysql.source.MySqlSource;
 import com.ververica.cdc.connectors.mysql.table.StartupOptions;
 import org.slf4j.Logger;
@@ -82,10 +83,10 @@ public class MySqlSourceConfigFactory implements Serializable {
     private String sinkUser;
     private String sinkPassword;
 
-    private String sinkJDBCURL;
+    private String ddlCaptureJDBCURL;
 
-    public MySqlSourceConfigFactory sinkJDBCURL(String sinkJDBCURL) {
-        this.sinkJDBCURL = sinkJDBCURL;
+    public MySqlSourceConfigFactory ddlCaptureJDBCURL(String ddlCaptureJDBCURL) {
+        this.ddlCaptureJDBCURL = ddlCaptureJDBCURL;
         return this;
     }
     public MySqlSourceConfigFactory sinkUser(String user) {
@@ -291,7 +292,7 @@ public class MySqlSourceConfigFactory implements Serializable {
         props.setProperty("database.serverTimezone", serverTimeZone);
         // database history
         props.setProperty(
-                "database.history", EmbeddedFlinkDatabaseHistory.class.getCanonicalName());
+                "database.history", DatabaseHistorySyncLayer.class.getCanonicalName());
         props.setProperty(
                 "database.history.instance.name", UUID.randomUUID().toString() + "_" + subtaskId);
         props.setProperty("database.history.skip.unparseable.ddl", String.valueOf(true));
@@ -300,7 +301,7 @@ public class MySqlSourceConfigFactory implements Serializable {
         // the underlying debezium reader should always capture the schema changes and forward them.
         // Note: the includeSchemaChanges parameter is used to control emitting the schema record,
         // only DataStream API program need to emit the schema record, the Table API need not
-        props.setProperty("include.schema.changes", String.valueOf(true));
+        props.setProperty("include.schema.changes", String.valueOf(false));
         // disable the offset flush totally
         props.setProperty("offset.flush.interval.ms", String.valueOf(Long.MAX_VALUE));
         // disable tombstones
@@ -334,17 +335,15 @@ public class MySqlSourceConfigFactory implements Serializable {
             jdbcProperties = new Properties();
         }
 
-        LOG.info("---------- init mysqlsourceconfigfactory {}",props.toString());
-        Exception exp = new Exception("-----------");
-        exp.printStackTrace();
-
+        LOG.info("---------- log source config  ddlCaptureJDBCURL {} sinkUser {} sinkPassword {} params {}",ddlCaptureJDBCURL,sinkUser,sinkPassword,props.toString());
+        DDlSyncLayer.getInstance().init(ddlCaptureJDBCURL,sinkUser,sinkPassword);
         return new MySqlSourceConfig(
                 hostname,
                 port,
                 username,
                 password,
 
-                sinkJDBCURL,
+                ddlCaptureJDBCURL,
                 sinkUser,
                 sinkPassword,
 

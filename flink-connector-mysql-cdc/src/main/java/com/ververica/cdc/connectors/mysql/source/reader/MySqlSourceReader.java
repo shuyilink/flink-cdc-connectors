@@ -215,18 +215,18 @@ public class MySqlSourceReader<T>
                 Map<TableId, TableChanges.TableChange> tableSchemas =
                         TableDiscoveryUtils.discoverCapturedTableSchemas(sourceConfig, jdbc);
 
-                DDlSyncLayer.getInstance().initParam(
-                        sourceConfig.getsinkJDBCURL(),
-                        sourceConfig.getSinkUsername(),
-                        sourceConfig.getSinkPassword());
+//                DDlSyncLayer.getInstance().initParam(
+//                        sourceConfig.getddlCaptureJDBCURL(),
+//                        sourceConfig.getSinkUsername(),
+//                        sourceConfig.getSinkPassword());
                 LOG.info("The table schema discovery for binlog split {} success", splitId);
                 return MySqlBinlogSplit.fillTableSchemas(split, tableSchemas);
             } catch (SQLException e) {
-                LOG.error("Failed to obtains table schemas due to {}", e.getMessage());
+                LOG.info("Failed to obtains table schemas due to {}", e.getMessage());
                 throw new FlinkRuntimeException(e);
             }
         } else {
-            LOG.warn(
+            LOG.info(
                     "The binlog split {} has table schemas yet, skip the table schema discovery",
                     split);
             return split;
@@ -237,7 +237,7 @@ public class MySqlSourceReader<T>
     public void handleSourceEvents(SourceEvent sourceEvent) {
         if (sourceEvent instanceof FinishedSnapshotSplitsAckEvent) {
             FinishedSnapshotSplitsAckEvent ackEvent = (FinishedSnapshotSplitsAckEvent) sourceEvent;
-            LOG.debug(
+            LOG.info(
                     "The subtask {} receives ack event for {} from enumerator.",
                     subtaskId,
                     ackEvent.getFinishedSplits());
@@ -246,12 +246,12 @@ public class MySqlSourceReader<T>
             }
         } else if (sourceEvent instanceof FinishedSnapshotSplitsRequestEvent) {
             // report finished snapshot splits
-            LOG.debug(
+            LOG.info(
                     "The subtask {} receives request to report finished snapshot splits.",
                     subtaskId);
             reportFinishedSnapshotSplitsIfNeed();
         } else if (sourceEvent instanceof BinlogSplitMetaEvent) {
-            LOG.debug(
+            LOG.info(
                     "The subtask {} receives binlog meta with group id {}.",
                     subtaskId,
                     ((BinlogSplitMetaEvent) sourceEvent).getMetaGroupId());
@@ -291,7 +291,7 @@ public class MySqlSourceReader<T>
             FinishedSnapshotSplitsReportEvent reportEvent =
                     new FinishedSnapshotSplitsReportEvent(finishedOffsets);
             context.sendSourceEventToCoordinator(reportEvent);
-            LOG.debug(
+            LOG.info(
                     "The subtask {} reports offsets of finished snapshot splits {}.",
                     subtaskId,
                     finishedOffsets);
@@ -333,7 +333,7 @@ public class MySqlSourceReader<T>
 
                 LOG.info("Fill meta data of group {} to binlog split", metaDataGroup.size());
             } else {
-                LOG.warn(
+                LOG.info(
                         "Received out of oder binlog meta event for split {}, the received meta group id is {}, but expected is {}, ignore it",
                         metadataEvent.getSplitId(),
                         receivedMetaGroupId,
@@ -341,7 +341,7 @@ public class MySqlSourceReader<T>
             }
             requestBinlogSplitMetaIfNeeded(uncompletedBinlogSplits.get(binlogSplit.splitId()));
         } else {
-            LOG.warn(
+            LOG.info(
                     "Received binlog meta event for split {}, but the uncompleted split map does not contain it",
                     metadataEvent.getSplitId());
         }

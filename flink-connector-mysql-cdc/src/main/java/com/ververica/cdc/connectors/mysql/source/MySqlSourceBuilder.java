@@ -236,8 +236,8 @@ public class MySqlSourceBuilder<T> {
         return this;
     }
 
-    public MySqlSourceBuilder<T> sinkJDBCURL(String sinkJDBCURL) {
-        this.configFactory.sinkJDBCURL(sinkJDBCURL);
+    public MySqlSourceBuilder<T> ddlCaptureJDBCURL(String ddlCaptureJDBCURL) {
+        this.configFactory.ddlCaptureJDBCURL(ddlCaptureJDBCURL);
         return this;
     }
     public MySqlSourceBuilder<T> sinkUser(String user) {

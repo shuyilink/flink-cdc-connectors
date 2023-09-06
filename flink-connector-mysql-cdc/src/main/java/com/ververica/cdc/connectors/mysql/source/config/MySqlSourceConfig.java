@@ -64,7 +64,7 @@ public class MySqlSourceConfig implements Serializable {
     private final Configuration dbzConfiguration;
     private final MySqlConnectorConfig dbzMySqlConfig;
 
-    private String sinkJDBCURL;
+    private String ddlCaptureJDBCURL;
     private String sinkUser;
     private String sinkPassword;
 
@@ -74,7 +74,7 @@ public class MySqlSourceConfig implements Serializable {
             String username,
             String password,
 
-            String sinkJDBCURL,
+            String ddlCaptureJDBCURL,
             String sinkUser,
             String sinkPassword,
 
@@ -121,14 +121,14 @@ public class MySqlSourceConfig implements Serializable {
         this.jdbcProperties = jdbcProperties;
         this.chunkKeyColumn = chunkKeyColumn;
 
-        this.sinkJDBCURL = sinkJDBCURL;
+        this.ddlCaptureJDBCURL = ddlCaptureJDBCURL;
         this.sinkUser = sinkUser;
         this.sinkPassword = sinkPassword;
 
     }
 
-    public String getsinkJDBCURL() {
-        return sinkJDBCURL;
+    public String getddlCaptureJDBCURL() {
+        return ddlCaptureJDBCURL;
     }
 
     public String getSinkUsername() {

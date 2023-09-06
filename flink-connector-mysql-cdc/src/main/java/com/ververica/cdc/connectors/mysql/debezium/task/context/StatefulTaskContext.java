@@ -17,8 +17,8 @@
 package com.ververica.cdc.connectors.mysql.debezium.task.context;
 
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
+import com.ververica.cdc.connectors.mysql.debezium.DatabaseHistorySyncLayer;
 import com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils;
-import com.ververica.cdc.connectors.mysql.debezium.EmbeddedFlinkDatabaseHistory;
 import com.ververica.cdc.connectors.mysql.debezium.dispatcher.EventDispatcherImpl;
 import com.ververica.cdc.connectors.mysql.debezium.dispatcher.SignalEventDispatcher;
 import com.ververica.cdc.connectors.mysql.source.config.MySqlSourceConfig;
@@ -110,10 +110,10 @@ public class StatefulTaskContext {
         // initial stateful objects
         final boolean tableIdCaseInsensitive = connection.isTableIdCaseSensitive();
         this.topicSelector = MySqlTopicSelector.defaultSelector(connectorConfig);
-        EmbeddedFlinkDatabaseHistory.registerHistory(
+        DatabaseHistorySyncLayer.registerHistory(
                 sourceConfig
                         .getDbzConfiguration()
-                        .getString(EmbeddedFlinkDatabaseHistory.DATABASE_HISTORY_INSTANCE_NAME),
+                        .getString(DatabaseHistorySyncLayer.DATABASE_HISTORY_INSTANCE_NAME),
                 mySqlSplit.getTableSchemas().values());
         this.databaseSchema =
                 DebeziumUtils.createMySqlDatabaseSchema(connectorConfig, tableIdCaseInsensitive);
@@ -221,7 +221,7 @@ public class StatefulTaskContext {
         String availableGtidStr = connection.knownGtidSet();
         if (availableGtidStr == null || availableGtidStr.trim().isEmpty()) {
             // Last offsets had GTIDs but the server does not use them ...
-            LOG.warn(
+            LOG.info(
                     "Connector used GTIDs previously, but MySQL does not know of any GTIDs or they are not enabled");
             return false;
         }
@@ -246,7 +246,7 @@ public class StatefulTaskContext {
                     gtidSetToReplicate,
                     nonPurgedGtidSetToReplicate);
             if (!gtidSetToReplicate.equals(nonPurgedGtidSetToReplicate)) {
-                LOG.warn("Some of the GTIDs needed to replicate have been already purged");
+                LOG.info("Some of the GTIDs needed to replicate have been already purged");
                 return false;
             }
             return true;
