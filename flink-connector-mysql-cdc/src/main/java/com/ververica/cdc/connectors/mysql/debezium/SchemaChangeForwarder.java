@@ -68,14 +68,18 @@ public class SchemaChangeForwarder implements DatabaseHistory {
             String ddl,
             TableChanges changes) {
         LOG.info(
-                "DatabaseHistorySyncLayer record {} {} {} {} {} {}",
+                "SchemaChangeForwarder record {} {} {} {} {} {}",
                 databaseName,
                 schemaName,
                 ddl,
                 changes,
                 source,
                 position);
-        DDlSyncExecutor.getInstance().execute(databaseName,ddl);
+        try {
+            DDlSyncExecutor.getInstance().execute(databaseName,ddl);
+        }catch (Exception e) {
+            LOG.info("SchemaChangeForwarder execute failed {}",e.toString());
+        }
     }
 
     @Override

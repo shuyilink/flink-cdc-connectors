@@ -45,7 +45,6 @@ public class DDlSyncExecutor {
     void initConnection()
     {
         try {
-            Class.forName("com.mysql.jdbc.Driver");
             connection = DriverManager.getConnection(ddlCaptureJDBCURL, user , password);
         } catch (Exception e) {
             LOG.info("DDlSyncExecutor initConnection failed {} {} {} {}",ddlCaptureJDBCURL,user,password,e);
@@ -63,12 +62,9 @@ public class DDlSyncExecutor {
         this.ddlCaptureJDBCURL = ddlCaptureJDBCURL;
         this.user = user;
         this.password = password;
-
-        initConnection();
-        this.isInited = true;
     }
 
-    public void execute(String db,String ddl) {
+    public void execute(String db,String ddl) throws SQLException {
         String table = DDLParser.parseTableName(ddl);
         String op =  DDLParser.parseOperation(ddl);
         String column =  DDLParser.parseColumn(ddl);
@@ -87,24 +83,19 @@ public class DDlSyncExecutor {
             finalDDL = String.format(EXECUTE_DDL,table,op,column,type);
         }
         LOG.info("DDlSyncExecutor execute {} {} {} {} {} {} {} {} {}",db,table,op,column,comment,def,type,ddl,finalDDL);
-        if(!isInited)
-        {
-            initConnection();
-            if (!isInited){
-                LOG.info("DDlSyncExecutor init failed twice {} {}",db,finalDDL);
-                return;
-            }
-        }
 
+        initConnection();
         Statement statement = null;
         try {
             statement = connection.createStatement();
             statement.execute(finalDDL);
         } catch (SQLException e) {
             LOG.info("DDlSyncExecutor execute failed {} {} {} ",db,finalDDL,e);
+            connection.close();
             return;
 //            throw new RuntimeException(e);
         }
+        connection.close();
         LOG.info("DDlSyncExecutor execute succeed {} {}",db,finalDDL);
     }
 }
