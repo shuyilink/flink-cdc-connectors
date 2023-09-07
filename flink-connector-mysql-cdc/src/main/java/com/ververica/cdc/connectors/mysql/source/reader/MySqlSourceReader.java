@@ -16,7 +16,6 @@
 
 package com.ververica.cdc.connectors.mysql.source.reader;
 
-import com.ververica.cdc.connectors.mysql.debezium.DDlSyncLayer;
 import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;

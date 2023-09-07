@@ -15,9 +15,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class DatabaseHistorySyncLayer implements DatabaseHistory {
+public class SchemaChangeForwarder implements DatabaseHistory {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DatabaseHistorySyncLayer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SchemaChangeForwarder.class);
 
     public static final String DATABASE_HISTORY_INSTANCE_NAME = "database.history.instance.name";
 
@@ -75,11 +75,7 @@ public class DatabaseHistorySyncLayer implements DatabaseHistory {
                 changes,
                 source,
                 position);
-//
-//        Exception exp = new Exception("test");
-//        exp.printStackTrace();
-//        LOG.info("-------------- DatabaseHistorySyncLayer call stack {}", exp.toString());
-        DDlSyncLayer.getInstance().execute(databaseName,ddl);
+        DDlSyncExecutor.getInstance().execute(databaseName,ddl);
     }
 
     @Override

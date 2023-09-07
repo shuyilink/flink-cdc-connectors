@@ -17,7 +17,7 @@
 package com.ververica.cdc.connectors.mysql.debezium.task.context;
 
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
-import com.ververica.cdc.connectors.mysql.debezium.DatabaseHistorySyncLayer;
+import com.ververica.cdc.connectors.mysql.debezium.SchemaChangeForwarder;
 import com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils;
 import com.ververica.cdc.connectors.mysql.debezium.dispatcher.EventDispatcherImpl;
 import com.ververica.cdc.connectors.mysql.debezium.dispatcher.SignalEventDispatcher;
@@ -104,16 +104,13 @@ public class StatefulTaskContext {
 
     public void configure(MySqlSplit mySqlSplit) {
 
-        Exception exp = new Exception("StatefulTaskContext exception");
-        exp.printStackTrace();
-
         // initial stateful objects
         final boolean tableIdCaseInsensitive = connection.isTableIdCaseSensitive();
         this.topicSelector = MySqlTopicSelector.defaultSelector(connectorConfig);
-        DatabaseHistorySyncLayer.registerHistory(
+        SchemaChangeForwarder.registerHistory(
                 sourceConfig
                         .getDbzConfiguration()
-                        .getString(DatabaseHistorySyncLayer.DATABASE_HISTORY_INSTANCE_NAME),
+                        .getString(SchemaChangeForwarder.DATABASE_HISTORY_INSTANCE_NAME),
                 mySqlSplit.getTableSchemas().values());
         this.databaseSchema =
                 DebeziumUtils.createMySqlDatabaseSchema(connectorConfig, tableIdCaseInsensitive);

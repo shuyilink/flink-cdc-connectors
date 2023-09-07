@@ -16,9 +16,8 @@
 
 package com.ververica.cdc.connectors.mysql.source.config;
 
-import com.ververica.cdc.connectors.mysql.debezium.DDlSyncLayer;
-import com.ververica.cdc.connectors.mysql.debezium.DatabaseHistorySyncLayer;
-import com.ververica.cdc.connectors.mysql.source.utils.TableDiscoveryUtils;
+import com.ververica.cdc.connectors.mysql.debezium.DDlSyncExecutor;
+import com.ververica.cdc.connectors.mysql.debezium.SchemaChangeForwarder;
 import org.apache.flink.annotation.Internal;
 
 import com.ververica.cdc.connectors.mysql.source.MySqlSource;
@@ -292,7 +291,7 @@ public class MySqlSourceConfigFactory implements Serializable {
         props.setProperty("database.serverTimezone", serverTimeZone);
         // database history
         props.setProperty(
-                "database.history", DatabaseHistorySyncLayer.class.getCanonicalName());
+                "database.history", SchemaChangeForwarder.class.getCanonicalName());
         props.setProperty(
                 "database.history.instance.name", UUID.randomUUID().toString() + "_" + subtaskId);
         props.setProperty("database.history.skip.unparseable.ddl", String.valueOf(true));
@@ -336,7 +335,7 @@ public class MySqlSourceConfigFactory implements Serializable {
         }
 
         LOG.info("---------- log source config  ddlCaptureJDBCURL {} sinkUser {} sinkPassword {} params {}",ddlCaptureJDBCURL,sinkUser,sinkPassword,props.toString());
-        DDlSyncLayer.getInstance().init(ddlCaptureJDBCURL,sinkUser,sinkPassword);
+        DDlSyncExecutor.getInstance().init(ddlCaptureJDBCURL,sinkUser,sinkPassword);
         return new MySqlSourceConfig(
                 hostname,
                 port,
