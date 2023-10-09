@@ -128,12 +128,21 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         Thread.sleep(tm * 1000);
 
         session = TiSession.create(tiConf);
-        TiTableInfo tableInfo = session.getCatalog().getTable(database, tableName);
-        if (tableInfo == null) {
-            throw new RuntimeException(
-                    String.format("Table %s.%s does not exist.", database, tableName));
+
+        TiTableInfo tableInfo = null;
+        for (int i = 0; i < 100; i++) {
+            TiTableInfo tbInfo = session.getCatalog().getTable(database, tableName);
+            if (tbInfo == null) {
+                LOG.info(" get table info failed {}, Table {} {} does not exist.",i, database, tableName);
+                Thread.sleep(5000);
+                continue;
+            }
+            tableInfo = tbInfo;
         }
 
+        if (tableInfo == null) {
+            throw new RuntimeException(String.format("Table %s.%s does not exist.", database, tableName));
+        }
         LOG.info("======finish getTable {} {} {} seconds",database,tableName,tm);
 
         tableId = tableInfo.getId();
