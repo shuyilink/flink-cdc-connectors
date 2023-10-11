@@ -131,6 +131,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
         TiTableInfo tableInfo = null;
         for (int i = 0; i < 100; i++) {
+
             TiTableInfo tbInfo = session.getCatalog().getTable(database, tableName);
             if (tbInfo == null) {
                 LOG.info(" get table info failed {}, Table {} {} does not exist.",i, database, tableName);
@@ -138,6 +139,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                 continue;
             }
             tableInfo = tbInfo;
+            break;
         }
 
         if (tableInfo == null) {
