@@ -33,6 +33,7 @@ import org.tikv.kvproto.Cdcpb.Event.Row;
 import org.tikv.kvproto.Coprocessor.KeyRange;
 import org.tikv.kvproto.Kvrpcpb;
 import org.tikv.shade.io.grpc.ManagedChannel;
+import org.tikv.shade.io.grpc.StatusRuntimeException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -253,15 +254,22 @@ public class CDCClient implements AutoCloseable {
     }
 
     public void handleErrorEvent(final long regionId, final Throwable error, long resolvedTs) {
-        LOGGER.info("handle error: {}, regionId: {}", error, regionId);
-        throw new FlinkRuntimeException("restart job for handleErrorEvent");
-//
+        ArrayList<Long> keys =  new ArrayList<>();
+        for (Long key : regionClients.keySet()) {
+            keys.add(key);
+        }
+        LOGGER.info("handle error: {}, regionId: {} resolvedTs: {} keySet: {}", error, regionId,resolvedTs,keys);
+//        if(error instanceof StatusRuntimeException){
+//            LOGGER.info("handle error is grpc error: {}, regionId: {} resolvedTs: {}", error, regionId,resolvedTs);
+//            return;
+//        }
+//        throw new FlinkRuntimeException("restart job for handleErrorEvent");
 
-//        final TiRegion region = regionClients.get(regionId).getRegion();
-//        session.getRegionManager()
-//                .onRequestFail(region); // invalidate cache for corresponding region
-//
-//        removeRegions(Arrays.asList(regionId));
-//        applyKeyRange(keyRange, resolvedTs); // reapply the whole keyRange
+        final TiRegion region = regionClients.get(regionId).getRegion();
+        session.getRegionManager()
+                .onRequestFail(region); // invalidate cache for corresponding region
+
+        removeRegions(Arrays.asList(regionId));
+        applyKeyRange(keyRange, resolvedTs); // reapply the whole keyRange
     }
 }

@@ -55,6 +55,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The source implementation for TiKV that read snapshot events first and then read the change
@@ -127,11 +128,10 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         int tm = Math.abs(random.nextInt()) % delay_seconds;
         Thread.sleep(tm * 1000);
 
+        LOG.info("======begin getTable {} {}",database,tableName);
         session = TiSession.create(tiConf);
-
         TiTableInfo tableInfo = null;
         for (int i = 0; i < 100; i++) {
-
             TiTableInfo tbInfo = session.getCatalog().getTable(database, tableName);
             if (tbInfo == null) {
                 LOG.info(" get table info failed {}, Table {} {} does not exist.",i, database, tableName);
@@ -145,7 +145,8 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         if (tableInfo == null) {
             throw new RuntimeException(String.format("Table %s.%s does not exist.", database, tableName));
         }
-        LOG.info("======finish getTable {} {} {} seconds",database,tableName,tm);
+        LOG.info("======finish getTable {} {}",database,tableName);
+//        LOG.info("======finish getTable {} {} {} seconds",database,tableName,tm);
 
         tableId = tableInfo.getId();
         keyRange =
@@ -182,24 +183,24 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         sourceContext = ctx;
         outputCollector.context = sourceContext;
 
-        int delay_seconds;
-        String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
-        if(delay_minute_env == null || delay_minute_env.isEmpty()) {
-            delay_seconds = 120;
-        } else {
-            delay_seconds = Integer.parseInt(delay_minute_env) * 60;
-        }
+//        int delay_seconds;
+//        String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
+//        if(delay_minute_env == null || delay_minute_env.isEmpty()) {
+//            delay_seconds = 120;
+//        } else {
+//            delay_seconds = Integer.parseInt(delay_minute_env) * 60;
+//        }
 
         int batchSize =  tiConf.getScanBatchSize();
         LOG.info("============batchSize {}",batchSize);
 
         if (startupMode == StartupMode.INITIAL && !isInitalized && resolvedTs <= 0) {
             synchronized (sourceContext.getCheckpointLock()) {
-                LOG.info("wait for start readSnapshotEvents {} {}  delayStartSeconds {} ",database, tableName,delayStartSeconds);
-                Random random = new Random();
-                int tm = Math.abs(random.nextInt()) % delay_seconds;
-                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} seconds ",database, tableName,delay_minute_env,tm);
-                Thread.sleep(tm * 1000);
+                LOG.info("wait for start readSnapshotEvents {} {}",database, tableName);
+//                Random random = new Random();
+//                int tm = Math.abs(random.nextInt()) % delay_seconds;
+//                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} seconds ",database, tableName,delay_minute_env,tm);
+////                Thread.sleep(tm * 1000);
                 readSnapshotEvents();
             }
         } else {
@@ -241,41 +242,50 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
     }
 
     protected void readSnapshotEvents() throws Exception {
-        LOG.info("read snapshot events {} {} {}", database, tableName, resolvedTs);
+        LOG.info("read snapshot events start {} {} {}", database, tableName, resolvedTs);
+        ReentrantLock lock = ParallelController.getLock();
         int count = 0;
+        //todo: restart for long time not process
         try (KVClient scanClient = session.createKVClient()) {
             long startTs = session.getTimestamp().getVersion();
             ByteString start = keyRange.getStart();
             int scanCount = 0;
             while (true) {
+                lock.lock();
                 final List<Kvrpcpb.KvPair> segment =
                         scanClient.scan(start, keyRange.getEnd(), startTs);
-
                 if (segment.isEmpty()) {
                     if(count == 0 && scanCount < retryCount){
-                        LOG.info("readSnapshotEvents fetch line is zero {} {} retry {}",database, tableName,scanCount);
+                        LOG.info("fetch row is zero {} {} retry {}",database, tableName,scanCount);
                         scanCount++;
                         Thread.sleep(3 * 1000);
                         continue;
                     }
                     resolvedTs = startTs;
                     LOG.info("finish snapshot events {} {} {} {} {}", database, tableName, tableId,resolvedTs,count);
+                    lock.unlock();
                     break;
                 }
-
+                lock.unlock();
                 for (final Kvrpcpb.KvPair pair : segment) {
                     if (TableKeyRangeUtils.isRecordKey(pair.getKey().toByteArray())) {
                         count++;
                         snapshotEventDeserializationSchema.deserialize(pair, outputCollector);
                     }
                 }
-
+                LOG.info("readSnapshotEvents {} {} {}", database, tableName, count);
                 start =
                         RowKey.toRawKey(segment.get(segment.size() - 1).getKey())
                                 .next()
                                 .toByteString();
                 Thread.sleep(300);
             }
+        }catch (Exception exception){
+            if(lock.isLocked()){
+                lock.unlock();
+            }
+            LOG.info("read snapshot events exception {} {} {}",database, tableName,exception.toString());
+            throw new FlinkRuntimeException("manual throw(warning: for miss data) committed row exception:" + exception, exception);
         }
     }
 
@@ -305,7 +315,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
             }
             Exception exception = exceptionBlockingQueue.poll();
             if (exception != null) {
-                throw new FlinkRuntimeException("committed row exception:" + exception, exception);
+                throw new FlinkRuntimeException("manual throw(warning: for miss data) committed row exception:" + exception, exception);
             }
             long curResolvedTs = cdcClient.getMaxResolvedTs();
             if(curResolvedTs == 0){
