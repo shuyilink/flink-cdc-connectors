@@ -128,7 +128,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         int tm = Math.abs(random.nextInt()) % delay_seconds;
         Thread.sleep(tm * 1000);
 
-        LOG.info("======begin getTable {} {}",database,tableName);
+        LOG.info("======begin getTable {} {} {}",database,tableName,tm);
         session = TiSession.create(tiConf);
         TiTableInfo tableInfo = null;
         for (int i = 0; i < 100; i++) {
@@ -183,13 +183,13 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         sourceContext = ctx;
         outputCollector.context = sourceContext;
 
-//        int delay_seconds;
-//        String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
-//        if(delay_minute_env == null || delay_minute_env.isEmpty()) {
-//            delay_seconds = 120;
-//        } else {
-//            delay_seconds = Integer.parseInt(delay_minute_env) * 60;
-//        }
+        int delay_seconds;
+        String delay_minute_env = System.getenv("TASK_START_RANDOM_DELAY_MINUTES");
+        if(delay_minute_env == null || delay_minute_env.isEmpty()) {
+            delay_seconds = 30;
+        } else {
+            delay_seconds = Integer.parseInt(delay_minute_env) * 60;
+        }
 
         int batchSize =  tiConf.getScanBatchSize();
         LOG.info("============batchSize {}",batchSize);
@@ -197,10 +197,10 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
         if (startupMode == StartupMode.INITIAL && !isInitalized && resolvedTs <= 0) {
             synchronized (sourceContext.getCheckpointLock()) {
                 LOG.info("wait for start readSnapshotEvents {} {}",database, tableName);
-//                Random random = new Random();
-//                int tm = Math.abs(random.nextInt()) % delay_seconds;
-//                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} seconds ",database, tableName,delay_minute_env,tm);
-////                Thread.sleep(tm * 1000);
+                Random random = new Random();
+                int tm = Math.abs(random.nextInt()) % delay_seconds;
+                LOG.info("wait for start readSnapshotEvents {} {} {} delay_minute_env {} seconds ",database, tableName,delay_minute_env,tm);
+                Thread.sleep(tm * 1000);
                 readSnapshotEvents();
             }
         } else {
@@ -278,7 +278,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                         RowKey.toRawKey(segment.get(segment.size() - 1).getKey())
                                 .next()
                                 .toByteString();
-                Thread.sleep(300);
+                Thread.sleep(50);
             }
         }catch (Exception exception){
             if(lock.isLocked()){

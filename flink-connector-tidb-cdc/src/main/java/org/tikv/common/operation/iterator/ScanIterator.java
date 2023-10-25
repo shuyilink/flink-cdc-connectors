@@ -87,12 +87,13 @@ public abstract class ScanIterator implements Iterator<Kvrpcpb.KvPair> {
             return true;
         }
 
-        int retryCount = 10;
-        for (int i = 0; i < retryCount; i++) {
+        int retry = 10;
+        for (int i = 0; i < retry; i++) {
             try {
                 TiRegion region = loadCurrentRegionToCache();
                 ByteString curRegionEndKey = region.getEndKey();
-                // currentCache is null means no keys found, whereas currentCache is empty means no values
+                // currentCache is null means no keys found, whereas currentCache is empty means no
+                // values
                 // found. The difference lies in whether to continue scanning, because chances are that
                 // an empty region exists due to deletion, region split, e.t.c.
                 // See https://github.com/pingcap/tispark/issues/393 for details
@@ -104,15 +105,23 @@ public abstract class ScanIterator implements Iterator<Kvrpcpb.KvPair> {
                 // Session should be single-threaded itself
                 // so that we don't worry about conf change in the middle
                 // of a transaction. Otherwise, below code might lose data
-                if (currentCache.size() < limit) {
+                int scanLimit = Math.min(limit, conf.getScanBatchSize());
+
+                LOG.info(
+                        "====== limit {} scanLimit {} cacheSize {},batchSize {}",
+                        limit,
+                        scanLimit,
+                        currentCache.size(),
+                        conf.getScanBatchSize());
+                if (currentCache.size() < scanLimit) {
                     startKey = curRegionEndKey;
                     lastKey = Key.toRawKey(curRegionEndKey);
-                } else if (currentCache.size() > limit) {
+                } else if (currentCache.size() > scanLimit) {
                     throw new IndexOutOfBoundsException(
                             "current cache size = "
                                     + currentCache.size()
                                     + ", larger than "
-                                    + conf.getScanBatchSize());
+                                    + scanLimit);
                 } else {
                     // Start new scan from exact next key in current region
                     lastKey = Key.toRawKey(currentCache.get(currentCache.size() - 1).getKey());
@@ -124,12 +133,12 @@ public abstract class ScanIterator implements Iterator<Kvrpcpb.KvPair> {
                     processingLastBatch = true;
                     startKey = null;
                 }
-                break;
+                return false;
             } catch (Exception e) {
-                if(i == retryCount -1 ){
+                if(i == retry -1){
                     throw new TiClientInternalException("Error scanning data from region.", e);
                 }
-                LOG.info("-----cacheLoadFails failed {} {} ", i, e);
+                LOG.info("cacheLoadFails catch one exception {} {}",i,e,e);
             }
         }
         return false;
