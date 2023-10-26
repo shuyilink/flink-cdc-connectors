@@ -243,7 +243,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
 
     protected void readSnapshotEvents() throws Exception {
         LOG.info("read snapshot events start {} {} {}", database, tableName, resolvedTs);
-        ReentrantLock lock = ParallelController.getLock();
+        ReentrantLock lock = null;
         int count = 0;
         //todo: restart for long time not process
         try (KVClient scanClient = session.createKVClient()) {
@@ -251,6 +251,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
             ByteString start = keyRange.getStart();
             int scanCount = 0;
             while (true) {
+                lock = ParallelController.getLock();
                 lock.lock();
                 final List<Kvrpcpb.KvPair> segment =
                         scanClient.scan(start, keyRange.getEnd(), startTs);
@@ -281,7 +282,7 @@ public class TiKVRichParallelSourceFunction<T> extends RichParallelSourceFunctio
                 Thread.sleep(50);
             }
         }catch (Exception exception){
-            if(lock.isLocked()){
+            if(lock != null && lock.isLocked()){
                 lock.unlock();
             }
             LOG.info("read snapshot events exception {} {} {}",database, tableName,exception.toString());
