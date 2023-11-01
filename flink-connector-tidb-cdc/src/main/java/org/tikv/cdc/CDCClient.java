@@ -263,13 +263,13 @@ public class CDCClient implements AutoCloseable {
 //            LOGGER.info("handle error is grpc error: {}, regionId: {} resolvedTs: {}", error, regionId,resolvedTs);
 //            return;
 //        }
-//        throw new FlinkRuntimeException("restart job for handleErrorEvent");
+        throw new FlinkRuntimeException("restart job for handleErrorEvent");
 
-        final TiRegion region = regionClients.get(regionId).getRegion();
-        session.getRegionManager()
-                .onRequestFail(region); // invalidate cache for corresponding region
-
-        removeRegions(Arrays.asList(regionId));
-        applyKeyRange(keyRange, resolvedTs); // reapply the whole keyRange
+//        final TiRegion region = regionClients.get(regionId).getRegion();
+//        session.getRegionManager()
+//                .onRequestFail(region); // invalidate cache for corresponding region
+//
+//        removeRegions(Arrays.asList(regionId));
+//        applyKeyRange(keyRange, resolvedTs); // reapply the whole keyRange
     }
 }
